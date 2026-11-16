@@ -39,6 +39,22 @@ FF.UI = (() => {
     const m = FF.Save.data.muted;
     $('btn-mute').textContent = m ? '🔇' : '🔊';
     $('btn-pause-mute').textContent = m ? '🔇 音效：關' : '🔊 音效：開';
+    const v = FF.Save.data.vibrate;
+    $('btn-vibrate').textContent = v ? '📳' : '📴';
+    $('btn-vibrate').setAttribute('aria-label', v ? '震動：開' : '震動：關');
+    $('btn-pause-vibrate').textContent = v ? '📳 震動：開' : '📴 震動：關';
+  }
+
+  function toggleVibrate() {
+    const s = FF.Save.data;
+    s.vibrate = !s.vibrate;
+    FF.Haptics.setEnabled(s.vibrate);
+    FF.Save.persist();
+    updateMuteButtons();
+    FF.Audio.play('click');
+    if (s.vibrate) FF.Haptics.vibrate('dodge');
+    if (!FF.Haptics.supported) toast(s.vibrate ? '震動：開（這台裝置不支援震動）' : '震動：關');
+    else toast(s.vibrate ? '📳 震動：開' : '📴 震動：關');
   }
 
   function toggleMute() {
@@ -171,7 +187,9 @@ FF.UI = (() => {
       <div><span>🔥 最高連擊</span><b>${st.bestCombo}</b></div>
       <div><span>💨 閃過她的筷子</span><b>${st.dodges}</b></div>
       <div><span>💥 被打掉</span><b>${st.knocked}</b></div>
-      <div><span>💗 她吃了幾口</span><b>${st.gfAte}</b></div>`;
+      <div><span>💗 她吃了幾口</span><b>${st.gfAte}</b></div>
+      <div><span>🥄 餵她吃了幾口</span><b>${st.fed || 0}</b></div>
+      <div><span>💢 她放大絕招</span><b>${st.ults || 0}</b></div>`;
     const un = $('res-unlock');
     un.classList.toggle('hidden', !r.unlocked.length);
     un.innerHTML = r.unlocked.map(v => `🎉 解鎖新場地：${v.icon} <b>${v.name}</b>`).join('<br>');
@@ -207,6 +225,8 @@ FF.UI = (() => {
     });
     click('btn-mute', () => toggleMute());
     click('btn-pause-mute', () => toggleMute());
+    $('btn-vibrate').addEventListener('click', () => { FF.Audio.unlock(); toggleVibrate(); });
+    $('btn-pause-vibrate').addEventListener('click', () => { FF.Audio.unlock(); toggleVibrate(); });
     click('btn-shop-back', () => show('menu'));
     click('btn-shop-start', () => app.requestStart());
     click('btn-resume', () => app.resume());

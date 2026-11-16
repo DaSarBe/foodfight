@@ -30,14 +30,18 @@ Object.assign(FF.Game.prototype, {
 
   cancelStrike() {
     const c = this.player.carry;
-    if (c && c.strike && (c.strike.phase === 'pending' || c.strike.phase === 'warn')) {
+    if (c && c.strike && ['pending', 'warn', 'gap'].includes(c.strike.phase)) {
+      const combo = c.strike.combo;
       c.strike = null;
       this.gf.state = 'return';
+      this.gf.afterSlam = null;
+      if (combo && this.ult) this.endUlt('interrupted');
     }
   },
 
+  // 服務員、撞車、女友大絕招彼此不重疊
   busyEvent() {
-    return !!(this.waiter || this.crash);
+    return !!(this.waiter || this.crash || this.ult);
   },
 
   updateEvents(dt) {
@@ -185,6 +189,7 @@ Object.assign(FF.Game.prototype, {
     const { pick } = FF.util;
     this.crash = { phase: 'warn', t: 0 };
     this.accident = null;
+    if (this.ult) this.endUlt('silent');
     this.fx.look = 0;
     if (this.waiter) this.waiter = null;
     // 夾到一半的食物掉回鍋裡
@@ -221,6 +226,7 @@ Object.assign(FF.Game.prototype, {
         c.t = 0;
         c.limit = this.crashEscapeTime();
         FF.Audio.play('crash');
+        FF.Haptics.vibrate('crash');
         this.shake = 26;
         this.flash = 1;
         this.burst(270, 230, 26, ['#e6f7ff', '#bfe9ff', '#ffffff'], { speed: 520, size: 7, life: 0.9, gravity: 700 });
@@ -276,36 +282,45 @@ Object.assign(FF.Game.prototype, {
   tapEvents(x, y) {
     const L = FF.EVENT_LAYOUT;
     const inR = r => x >= r.x && x <= r.x + r.w && y >= r.y && y <= r.y + r.h;
-    const { pick } = FF.util;
     if (this.crash) {
       if (this.crash.phase === 'escape' && inR(L.escape)) this.resolveCrash(true);
       return true;
     }
     const w = this.waiter;
     if (w && w.phase === 'pitch' && inR(L.card)) {
-      if (inR(L.btnNo)) {
-        FF.Audio.play('click');
-        this.waiterLeave(pick(FF.WAITER_LINES.no));
-      } else if (inR(L.btnBuy)) {
-        FF.Audio.play('coin');
-        this.score = Math.max(0, this.score - 30);
-        this.stats.pitchesBought++;
-        if (w.good) {
-          this.applyGoodPitch(w.good);
-        } else if (Math.random() < 0.3) {
-          this.float(270, 520, '買了！-30 分', '#ffd0a0', 26);
-          this.anger = Math.max(0, this.anger - 10);
-          this.say(pick(FF.WAITER_LINES.gfLike), 2.4, true);
-          this.burst(FF.CONFIG.gf.x, FF.CONFIG.gf.y, 4, ['#fff'], { speed: 120, size: 20, life: 1, gravity: -40, emoji: '💗' });
-        } else {
-          this.float(270, 520, '買了！-30 分', '#ffd0a0', 26);
-          this.anger += 6 * this.mods.angerMul;
-          this.say(pick(FF.WAITER_LINES.gfHate), 2.4, true);
-        }
-        this.waiterLeave(pick(FF.WAITER_LINES.buy));
-      }
+      if (inR(L.btnNo)) this.waiterDecline();
+      else if (inR(L.btnBuy)) this.waiterBuy();
       return true; // 推銷卡擋住的地方點不到鍋子
     }
     return false;
+  },
+
+  waiterDecline() {
+    const w = this.waiter;
+    if (!w || w.phase !== 'pitch') return;
+    FF.Audio.play('click');
+    this.waiterLeave(FF.util.pick(FF.WAITER_LINES.no));
+  },
+
+  waiterBuy() {
+    const w = this.waiter;
+    const { pick } = FF.util;
+    if (!w || w.phase !== 'pitch') return;
+    FF.Audio.play('coin');
+    this.score = Math.max(0, this.score - 30);
+    this.stats.pitchesBought++;
+    if (w.good) {
+      this.applyGoodPitch(w.good);
+    } else if (Math.random() < 0.3) {
+      this.float(270, 520, '買了！-30 分', '#ffd0a0', 26);
+      this.anger = Math.max(0, this.anger - 10);
+      this.say(pick(FF.WAITER_LINES.gfLike), 2.4, true);
+      this.burst(FF.CONFIG.gf.x, FF.CONFIG.gf.y, 4, ['#fff'], { speed: 120, size: 20, life: 1, gravity: -40, emoji: '💗' });
+    } else {
+      this.float(270, 520, '買了！-30 分', '#ffd0a0', 26);
+      this.anger += 6 * this.mods.angerMul;
+      this.say(pick(FF.WAITER_LINES.gfHate), 2.4, true);
+    }
+    this.waiterLeave(pick(FF.WAITER_LINES.buy));
   },
 });

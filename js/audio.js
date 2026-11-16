@@ -112,6 +112,22 @@ FF.Audio = (() => {
     },
     hero: () => [523, 659, 784, 1047, 1319].forEach((f, i) => tone(f, 0.18, { type: 'triangle', vol: 0.22, delay: i * 0.08 })),
     error: () => tone(200, 0.15, { type: 'square', vol: 0.12 }),
+    // 大絕招：低音轟一聲 + 往上衝的蓄力音 + 兩聲重鼓
+    ult: () => {
+      noise(0.5, { vol: 0.6, freq: 200, q: 0.6, type: 'lowpass' });
+      tone(110, 0.9, { type: 'sawtooth', vol: 0.16, slide: 440 });
+      tone(165, 0.9, { type: 'square', vol: 0.08, slide: 660, delay: 0.05 });
+      [0.55, 0.8].forEach(d => { tone(80, 0.18, { type: 'sine', vol: 0.5, slide: -40, delay: d }); noise(0.1, { vol: 0.4, freq: 800, delay: d }); });
+      tone(1760, 0.25, { type: 'triangle', vol: 0.12, delay: 0.9 });
+    },
+    swipe: () => { noise(0.12, { vol: 0.35, freq: 1500, sweep: 3500, q: 2 }); tone(900, 0.06, { type: 'triangle', vol: 0.1, slide: 500 }); },
+    // 餵食：「啊～」上滑 + 「嗯！」+ 叮叮
+    feed: () => {
+      tone(500, 0.18, { type: 'sine', vol: 0.2, slide: 300 });
+      tone(700, 0.1, { type: 'sine', vol: 0.18, delay: 0.2 });
+      [1319, 1568, 2093].forEach((f, i) => tone(f, 0.16, { type: 'triangle', vol: 0.14, delay: 0.3 + i * 0.07 }));
+    },
+    yuck: () => { tone(330, 0.35, { type: 'sawtooth', vol: 0.12, slide: -180 }); tone(260, 0.3, { type: 'square', vol: 0.06, slide: -120, delay: 0.12 }); },
   };
 
   return {

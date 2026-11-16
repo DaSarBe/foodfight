@@ -3,6 +3,13 @@ html, body {
   margin: 0;
   height: 100%;
   background: #3b1d0e radial-gradient(circle at 50% 30%, #6b3518, #2a1308);
+}
+/* 高螢幕手機（比 9:16 還瘦長）：上下黑邊改成跟畫面上緣/下緣同色，由 main.js 取樣設定 */
+body.tall {
+  background: linear-gradient(to bottom, var(--edge-top, #3b1d0e) 0 50%, var(--edge-bottom, #3b1d0e) 50% 100%);
+}
+body.tall #game { box-shadow: none; }
+html, body {
   overflow: hidden;
   touch-action: none;
   user-select: none;
@@ -93,6 +100,8 @@ h3 small { font-size: 0.7em; color: #a0704f; font-weight: normal; }
   background: #ffe2c2;
   cursor: pointer;
 }
+
+.icon-btn.second { right: 2.9em; }
 
 .rules { list-style: none; padding: 0; margin: 0; text-align: left; font-size: 1em; line-height: 1.55; }
 .rules li { display: flex; gap: 0.6em; align-items: flex-start; padding: 0.45em 0; border-bottom: 0.08em dashed #f0c9a0; }

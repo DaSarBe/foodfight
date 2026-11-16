@@ -8,6 +8,7 @@
   let dpr = 1;
   let game = null;
   let playing = false;
+  let edgeTimer = 0;
 
   FF.debug = { timeScale: 1, get game() { return game; } };
 
@@ -25,6 +26,9 @@
     cv.style.height = h + 'px';
     cv.width = Math.round(w * dpr);
     cv.height = Math.round(h * dpr);
+    // 比 9:16 還瘦長的螢幕，上下會留邊：讓邊條顏色跟畫面上緣/下緣銜接
+    document.body.classList.toggle('tall', vh - h > 4);
+    edgeTimer = 0;
   }
   window.addEventListener('resize', resize);
   window.addEventListener('orientationchange', () => setTimeout(resize, 200));
@@ -32,6 +36,7 @@
 
   const save = FF.Save.load();
   FF.Audio.setMuted(save.muted);
+  FF.Haptics.setEnabled(save.vibrate);
 
   const app = {
     requestStart() {
@@ -97,12 +102,25 @@
       else app.pause();
       return;
     }
-    if (game.paused || FF.UI.current !== null) return;
+    if (game.paused || FF.UI.current !== null || game.over) return;
     FF.Audio.unlock();
+    const k = e.key.toLowerCase();
+    if (e.code === 'Space' || e.key === 'Enter') e.preventDefault();
+    if (e.repeat) return;
+    // 撞車：空白鍵或 Enter 帶她換桌
+    if (game.crash) {
+      if ((e.code === 'Space' || e.key === 'Enter') && game.crash.phase === 'escape') game.resolveCrash(true);
+      return;
+    }
+    // 服務員推銷：N 拒絕、B 購買
+    if (game.waiter && game.waiter.phase === 'pitch') {
+      if (k === 'n') return game.waiterDecline();
+      if (k === 'b') return game.waiterBuy();
+    }
     if (e.code === 'Space') {
-      e.preventDefault();
       if (game.player.state === 'carry') game.dodge();
     }
+    if (k === 'f') game.feed();
     const n = parseInt(e.key, 10);
     if (n >= 1 && n <= FF.ITEMS.length) game.useItem(FF.ITEMS[n - 1].id);
   });
@@ -133,7 +151,44 @@
     } else {
       FF.Render.drawMenuBg(ctx, time);
     }
+    edgeTimer -= dt;
+    if (edgeTimer <= 0) {
+      edgeTimer = 1;
+      updateEdges();
+    }
     requestAnimationFrame(frame);
   }
   requestAnimationFrame(frame);
+
+  // 取樣畫面最上排與最下排的顏色，設定給上下邊條（只在瘦長螢幕有作用）
+  const OVERLAY = [40, 15, 5, 0.55]; // .screen 的半透明底色
+  // 先把 1 個像素畫到小畫布再讀，避免主畫布頻繁 readback
+  const probe = document.createElement('canvas');
+  probe.width = probe.height = 1;
+  const pctx = probe.getContext('2d', { willReadFrequently: true });
+  function sampleRow(y) {
+    try {
+      pctx.clearRect(0, 0, 1, 1);
+      pctx.drawImage(cv, Math.floor(cv.width / 2), y, 1, 1, 0, 0, 1, 1);
+      const d = pctx.getImageData(0, 0, 1, 1).data;
+      if (d[3] < 250) return null; // 震動中露出透明邊，略過這次
+      let c = [d[0], d[1], d[2]];
+      if (FF.UI.current !== null) c = c.map((v, i) => Math.round(v * (1 - OVERLAY[3]) + OVERLAY[i] * OVERLAY[3]));
+      return `rgb(${c[0]},${c[1]},${c[2]})`;
+    } catch (e) {
+      return null;
+    }
+  }
+  const themeMeta = document.querySelector('meta[name="theme-color"]');
+  function updateEdges() {
+    if (!document.body.classList.contains('tall')) return;
+    const top = sampleRow(0);
+    const bottom = sampleRow(cv.height - 1);
+    const st = document.body.style;
+    if (top) {
+      st.setProperty('--edge-top', top);
+      if (themeMeta) themeMeta.setAttribute('content', top);
+    }
+    if (bottom) st.setProperty('--edge-bottom', bottom);
+  }
 })();

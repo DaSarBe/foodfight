@@ -15,6 +15,7 @@ FF.Save = (() => {
       items,
       best: { score: 0, time: 0, wave: 0 },
       muted: false,
+      vibrate: true,
       seenTutorial: false,
       runs: 0,
       venue: 'city',
@@ -42,6 +43,8 @@ FF.Save = (() => {
       d.best.wave = num(raw.best.wave, 0);
     }
     d.muted = !!raw.muted;
+    // 舊存檔沒有這個欄位時預設開啟
+    d.vibrate = raw.vibrate === undefined ? true : !!raw.vibrate;
     d.seenTutorial = !!raw.seenTutorial;
     d.runs = num(raw.runs, 0);
     if (FF.VENUES.some(v => v.id === raw.venue)) d.venue = raw.venue;

@@ -66,12 +66,13 @@ FF.Game = class Game {
     this.result = null;
     this.bowl = [];
     this.bowlBounce = 0;
-    this.lastTap = null;
     this.dodgeStreak = 0;
     this.slowmo = 0;
     this.dodgeFlash = 0;
     this.shockwaves = [];
+    this.timers = []; // 跟著遊戲時間走的延遲動作（暫停時不會觸發）
     this.initEvents();
+    this.initSpecials();
 
     // 開局先放幾樣食物，熟度錯開
     for (let i = 0; i < 4; i++) this.spawnFood(this.randomFoodDef(), { t: i * 0.7, quiet: true });
@@ -148,6 +149,23 @@ FF.Game = class Game {
     this.banner = { title, sub, t: 0, life: 2.4 };
   }
 
+  // 延遲 delay 秒（遊戲時間）後執行
+  later(delay, fn) {
+    this.timers.push({ t: delay, fn });
+  }
+
+  updateTimers(dt) {
+    if (!this.timers.length) return;
+    const due = [];
+    for (const tm of this.timers) {
+      tm.t -= dt;
+      if (tm.t <= 0) due.push(tm);
+    }
+    if (!due.length) return;
+    this.timers = this.timers.filter(tm => tm.t > 0);
+    due.forEach(tm => tm.fn());
+  }
+
   spawnFood(def, opts = {}) {
     const p = this.randomPotPoint(def.rare ? 70 : 45);
     const { rand } = FF.util;
@@ -180,6 +198,7 @@ FF.Game = class Game {
       this.slowmo -= dt;
       dt *= 0.3;
     }
+    this.updateTimers(dt);
     if (this.over) {
       this.updateFx(dt);
       this.overTimer -= dt;
@@ -246,6 +265,7 @@ FF.Game = class Game {
     this.updatePlayer(dt);
     this.updateGF(dt);
     this.updateEvents(dt);
+    this.updateSpecials(dt);
 
     this.foods = this.foods.filter(f => f.state !== 'gone');
 
@@ -253,7 +273,7 @@ FF.Game = class Game {
     this.hintTimer -= dt;
     if (this.hintTimer <= 0) {
       this.hintTimer = 6;
-      if (this.anger > 70) this.say(FF.util.pick(FF.LINES.angry), 2.4, true);
+      if (this.ult) { /* 放大招時不插嘴 */ } else if (this.anger > 70) this.say(FF.util.pick(FF.LINES.angry), 2.4, true);
       else if (this.sat < this.mods.satMax * 0.25) this.say(FF.util.pick(FF.LINES.hungry));
     }
 
@@ -361,7 +381,7 @@ FF.Game = class Game {
     FF.Audio.play('wave');
     const rare = pick(FF.RARE_FOODS);
     this.spawnFood(rare);
-    setTimeout(() => FF.Audio.play('rare'), 300);
+    this.later(0.3, () => FF.Audio.play('rare'));
     const subs = {
       2: '她開始會「指定」食物了',
       3: '小心假動作、蒸氣和辣鍋！',
@@ -461,6 +481,12 @@ FF.Game = class Game {
       g.target = null;
       this.say(pick(FF.LINES.steal), 2.2, true);
     }
+    // 大絕招「筷子連打」已就緒：這一塊要連打
+    const u = this.ult;
+    if (u && u.type === 'combo' && u.phase === 'armed' && this.fx.chopsticks <= 0 && !this.distracted()) {
+      this.armComboStrike(p.carry);
+      return;
+    }
     // 女友要不要打掉？
     const canStrike = ['idle', 'reach', 'hover', 'return'].includes(g.state) && this.fx.chopsticks <= 0 && !this.distracted();
     if (!canStrike) return;
@@ -495,15 +521,19 @@ FF.Game = class Game {
     const p = this.player;
     const c = p.carry;
     const f = c.food;
+    if (c.feed) {
+      this.updateFeed(dt);
+      return;
+    }
     let rate = 1 / C.carryTime;
     const s = c.strike;
     if (s) {
-      if (s.phase === 'pending' && c.prog >= s.at) {
-        s.phase = 'warn';
-        s.timer = s.warn;
-        this.strikesSeen++;
-        FF.Audio.play('warn');
-        this.gf.state = 'strikeWarn';
+      if (s.phase === 'pending' && c.prog >= s.at) this.strikeWarnStart(s);
+      if (s.phase === 'gap') {
+        // 連打的兩下之間
+        s.timer -= dt;
+        s.grace -= dt;
+        if (s.timer <= 0) this.strikeWarnStart(s);
       }
       if (s.phase === 'warn') {
         rate *= 0.25;
@@ -521,6 +551,8 @@ FF.Game = class Game {
           return;
         }
       }
+      // 連打：第一下開始後食物幾乎停住，直到每一下都分出勝負
+      if (s.combo && s.phase !== 'pending' && s.phase !== 'dodged') rate = FF.ULT.combo.carryMul / C.carryTime;
     }
     if (c.swerveT >= 0) c.swerveT += dt;
     c.prog = Math.min(1, c.prog + rate * dt);
@@ -532,12 +564,21 @@ FF.Game = class Game {
     if (c.prog >= 1) this.playerEat(f);
   }
 
+  strikeWarnStart(s) {
+    s.phase = 'warn';
+    s.timer = s.warn;
+    this.strikesSeen++;
+    FF.Audio.play('warn');
+    this.gf.state = 'strikeWarn';
+  }
+
   knockFood() {
     const p = this.player;
     const c = p.carry;
     const f = c.food;
     const { pick } = FF.util;
     FF.Audio.play('hit');
+    FF.Haptics.vibrate('knocked');
     this.shake = 16;
     this.flash = 1;
     this.burst(f.x, f.y, 18, ['#fff', '#ffd54a', '#ff8a65'], { speed: 320, size: 7, life: 0.6 });
@@ -556,6 +597,8 @@ FF.Game = class Game {
     p.state = 'return';
     p.carry = null;
     this.gf.state = 'return';
+    this.gf.afterSlam = null;
+    if (c.strike && c.strike.combo && this.ult) this.endUlt('hit');
   }
 
   dodge() {
@@ -571,9 +614,23 @@ FF.Game = class Game {
       this.gf.slamTarget = { x: pos.x, y: pos.y };
       this.gf.timer = 0.35;
       this.gf.pout = 1.3;
+      this.gf.afterSlam = null;
+      if (s.combo) {
+        // 連打：還有下一下
+        s.idx++;
+        if (s.idx < s.hits) {
+          s.phase = 'gap';
+          s.timer = FF.ULT.combo.gap;
+          s.grace = FF.ULT.combo.grace;
+          c.swerveDir = -c.swerveDir; // 下一下往另一邊閃
+          this.gf.timer = 0.2;
+          this.gf.afterSlam = 'strikeAim';
+        }
+      }
       this.dodgeStreak++;
       const streak = this.dodgeStreak;
       FF.Audio.play('dodge', streak);
+      FF.Haptics.vibrate('dodge');
       const bonus = 5 * Math.min(streak, 5);
       this.score += bonus;
       // 打擊感：短暫慢動作、白光、衝擊波
@@ -581,12 +638,19 @@ FF.Game = class Game {
       this.dodgeFlash = 1;
       this.shake = Math.max(this.shake, 6);
       this.shockwaves.push({ x: pos.x, y: pos.y, t: 0 });
-      this.float(pos.x, pos.y - 40, streak > 1 ? `完美閃避 x${streak}！+${bonus}` : `閃過！+${bonus}`, '#7dffb0', streak > 1 ? 32 : 34, 1.2);
+      const label = s.combo ? `連打閃過 ${s.idx}/${s.hits}！+${bonus}` : streak > 1 ? `完美閃避 x${streak}！+${bonus}` : `閃過！+${bonus}`;
+      this.float(pos.x, pos.y - 40, label, '#7dffb0', streak > 1 || s.combo ? 32 : 34, 1.2);
       this.burst(pos.x, pos.y, 18, ['#b9ffd6', '#ffffff', '#7dffb0'], { speed: 320, size: 6, life: 0.5, gravity: 0 });
       this.burst(pos.x, pos.y, 3, ['#fff'], { speed: 160, size: 22, life: 0.6, gravity: -50, emoji: '✨' });
       this.stats.dodges++;
       this.anger += 3 * this.mods.angerMul;
-      this.say(pick(FF.LINES.dodged), 2.0, true);
+      if (!s.combo || s.phase === 'dodged') this.say(pick(FF.LINES.dodged), 2.0, true);
+    } else if (s && s.phase === 'gap') {
+      // 連打的空檔：剛閃完那一下的連點不算，之後太早點會手抖
+      if (s.grace <= 0 && !c.flinch) {
+        c.flinch = true;
+        this.float(this.player.tip.x, this.player.tip.y - 30, '太早了！手抖…', '#cfcfcf', 20, 0.8);
+      }
     } else if (!c.flinch && (!s || s.phase === 'pending')) {
       c.flinch = true;
       this.float(this.player.tip.x, this.player.tip.y - 30, '手抖了…', '#cfcfcf', 20, 0.8);
@@ -651,6 +715,7 @@ FF.Game = class Game {
       this.shake = Math.max(this.shake, 5);
     }
     this.stats.eaten++;
+    if (c.strike && c.strike.combo && this.ult) this.endUlt('cleared');
     this.bowl.push(d.emoji);
     if (this.bowl.length > 3) this.bowl.shift();
     this.bowlBounce = 1;
@@ -801,7 +866,7 @@ FF.Game = class Game {
         }
         const f = c.food;
         const s = c.strike;
-        if (s.phase === 'pending') {
+        if (s.phase === 'pending' || s.phase === 'gap') {
           this.moveToward(g.tip, { x: f.x + 30, y: f.y - 110 }, 2600 * dt);
         } else if (s.phase === 'warn') {
           const tgt = { x: f.x + Math.sin(this.t * 45) * 5, y: f.y - 90 };
@@ -814,8 +879,13 @@ FF.Game = class Game {
       case 'slamMiss':
         this.moveToward(g.tip, g.slamTarget, 5000 * dt);
         g.timer -= dt;
-        if (g.timer <= 0) g.state = 'return';
+        if (g.timer <= 0) {
+          g.state = g.afterSlam || 'return';
+          g.afterSlam = null;
+        }
         break;
+      case 'ult':
+        break; // 大絕招期間由 updateUlt 控制筷子
       default:
         g.state = 'idle';
     }
@@ -872,9 +942,10 @@ FF.Game = class Game {
         return;
       }
     }
-    this.lastTap = { x, y, t: 0 };
     if (this.player.state === 'carry') {
-      this.dodge();
+      // 夾著食物時點她的臉＝餵她；其他地方＝閃避
+      if (this.faceHit(x, y)) this.feed();
+      else if (!(this.player.carry && this.player.carry.feed)) this.dodge();
       return;
     }
     let best = null;
@@ -910,13 +981,7 @@ FF.Game = class Game {
     this.itemCd = FF.CONFIG.itemCooldown;
     FF.Audio.play('item');
     this.burst(b.x, b.y, 10, ['#fff', '#ffe066'], { speed: 180, size: 5, life: 0.5, gravity: 0 });
-    const cancelStrike = () => {
-      const c = this.player.carry;
-      if (c && c.strike && (c.strike.phase === 'pending' || c.strike.phase === 'warn')) {
-        c.strike = null;
-        this.gf.state = 'return';
-      }
-    };
+    const cancelStrike = () => this.cancelStrike();
     switch (id) {
       case 'chopsticks':
         this.fx.chopsticks = item.dur;
@@ -926,6 +991,8 @@ FF.Game = class Game {
       case 'cute':
         this.anger = Math.max(0, this.anger - 35);
         this.say(pick(FF.LINES.cute), 2.4, true);
+        // 撒嬌可以打斷還沒出手的大絕招
+        if (this.ult && ['charge', 'windup', 'armed'].includes(this.ult.phase)) this.endUlt('cute');
         this.burst(FF.CONFIG.gf.x, FF.CONFIG.gf.y, 8, ['#fff'], { speed: 160, size: 20, life: 1, gravity: -40, emoji: '💕' });
         break;
       case 'soup':
@@ -989,8 +1056,10 @@ FF.Game = class Game {
     const r = this.result;
     r.grade = { grade: G.grade, title: G.title, stars: G.stars, color: G.color, comment: FF.util.pick(G[reason]) };
     r.quips = FF.QUIPS.map(q => q(r)).filter(Boolean).slice(0, 2);
+    if (this.ult) this.endUlt('silent');
     if (reason !== 'quit') {
       FF.Audio.play('gameover');
+      FF.Haptics.vibrate('gameover');
       this.shake = 10;
       this.say(this.result.line.replace(/^「|」.*$/g, ''), 9, true);
     }

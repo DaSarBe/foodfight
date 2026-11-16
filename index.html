@@ -23,6 +23,7 @@
         <button class="btn" id="btn-howto">📖 玩法說明</button>
         <div class="best" id="menu-best"></div>
         <button class="icon-btn" id="btn-mute" aria-label="靜音">🔊</button>
+        <button class="icon-btn second" id="btn-vibrate" aria-label="震動">📳</button>
       </div>
     </section>
 
@@ -30,19 +31,21 @@
       <div class="panel scroll">
         <h2>📖 玩法說明</h2>
         <ul class="rules">
-          <li><span class="big">👆</span>點鍋裡的食物，伸筷子去夾。</li>
-          <li><span class="big">🟢</span>食物外圈：<b class="c-raw">藍色＝生的</b>、<b class="c-ok">綠色＝剛好</b>、<b class="c-over">咖啡色＝煮太老</b>。剛好的分數最高，生的吃了會肚子痛！</li>
-          <li><span class="big">💗</span>粉紅虛線圈是她正在瞄準的食物，先夾到先贏。</li>
-          <li><span class="big">❗</span>你夾著食物回碗的路上，她可能會用筷子打掉！看到 ❗ 時<b>點一下畫面</b>閃開。太早亂點會手抖喔。</li>
-          <li><span class="big">😤</span>搶她的食物、搶她指定的食物，她的怒氣會飆高；讓她吃到東西會消氣。</li>
-          <li><span class="big">🍚</span>你的飽足感會一直下降，要記得吃。</li>
-          <li><span class="big">💀</span>怒氣滿了，或你餓到飽足感歸零，遊戲結束。在「搶」與「讓」之間取捨吧！</li>
-          <li><span class="big">🧑‍🍳</span>服務員會跑來推銷，推銷卡會擋住鍋子！有些是亂推銷，有些是真的划算（像和牛加一盤、送她冰淇淋），看清楚再決定買不買！</li>
-          <li><span class="big">👀</span>窗外偶爾會發生意外，她轉頭去看的時候不會搶也不會打你，趁機多夾幾塊！</li>
-          <li><span class="big">🚗</span>有車撞進餐廳時，快按「帶她換桌！」。救到她會大大消氣，愣住的話她會超生氣，鍋子還會翻一半。</li>
-          <li><span class="big">📍</span>撐到越後面的波數會解鎖新場地，每個場地都有不同的推銷、意外和撞進來的車。</li>
-          <li><span class="big">🎫</span>每局結束都能拿到飯票，去商店升級能力、買道具。</li>
-          <li><span class="big">⌨️</span>電腦：空白鍵閃避、1～4 使用道具、Esc 暫停。</li>
+          <li><span class="big">👆</span><span>點鍋裡的食物，伸筷子去夾。</span></li>
+          <li><span class="big">🟢</span><span>食物外圈：<b class="c-raw">藍色＝生的</b>、<b class="c-ok">綠色＝剛好</b>、<b class="c-over">咖啡色＝煮太老</b>。剛好的分數最高，生的吃了會肚子痛！</span></li>
+          <li><span class="big">💗</span><span>粉紅虛線圈是她正在瞄準的食物，先夾到先贏。</span></li>
+          <li><span class="big">❗</span><span>你夾著食物回碗的路上，她可能會用筷子打掉！看到 ❗ 時<b>點一下畫面</b>閃開。太早亂點會手抖喔。</span></li>
+          <li><span class="big">🥄</span><span><b>餵她吃</b>：夾著食物回碗的路上，<b>點她的臉</b>就會改成餵她（她不會打掉送到嘴邊的食物）。剛好熟的大消氣，她最愛的、稀有的消更多；生的或煮太老的她會嫌棄。你自己就吃不到那塊了，一直餵小心餓昏，而且連續餵她會越來越沒感。</span></li>
+          <li><span class="big">😤</span><span>搶她的食物、搶她指定的食物，她的怒氣會飆高；讓她吃到東西會消氣。</span></li>
+          <li><span class="big">🍚</span><span>你的飽足感會一直下降，要記得吃。</span></li>
+          <li><span class="big">💀</span><span>怒氣滿了，或你餓到飽足感歸零，遊戲結束。在「搶」與「讓」之間取捨吧！</span></li>
+          <li><span class="big">💢</span><span><b>大絕招</b>：她怒氣超過 80 時可能放大招！「全鍋掃蕩」會先標記食物再連續夾走，趁蓄力時先搶、或用手機、撒嬌打斷；「筷子連打」會在你下一塊夾起來時連打好幾下，每一下 ❗ 出現都要點一次閃開（太早點會手抖），或乾脆點她的臉把那塊餵給她。放完大招她會消氣一點。</span></li>
+          <li><span class="big">🧑‍🍳</span><span>服務員會跑來推銷，推銷卡會擋住鍋子！有些是亂推銷，有些是真的划算（像和牛加一盤、送她冰淇淋），看清楚再決定買不買！</span></li>
+          <li><span class="big">👀</span><span>窗外偶爾會發生意外，她轉頭去看的時候不會搶也不會打你，趁機多夾幾塊！</span></li>
+          <li><span class="big">🚗</span><span>有車撞進餐廳時，快按「帶她換桌！」。救到她會大大消氣，愣住的話她會超生氣，鍋子還會翻一半。</span></li>
+          <li><span class="big">📍</span><span>撐到越後面的波數會解鎖新場地，每個場地都有不同的推銷、意外和撞進來的車。</span></li>
+          <li><span class="big">🎫</span><span>每局結束都能拿到飯票，去商店升級能力、買道具。</span></li>
+          <li><span class="big">⌨️</span><span>電腦：滑鼠點擊；空白鍵閃避、F 餵她、1～4 使用道具、Esc 或 P 暫停；撞車時空白鍵或 Enter 帶她換桌；服務員推銷時 N 拒絕、B 購買。</span></li>
         </ul>
         <button class="btn primary" id="btn-howto-ok">知道了！</button>
       </div>
@@ -84,6 +87,7 @@
         <button class="btn primary" id="btn-resume">繼續吃</button>
         <button class="btn" id="btn-pause-howto">📖 玩法說明</button>
         <button class="btn" id="btn-pause-mute">🔊 音效：開</button>
+        <button class="btn" id="btn-pause-vibrate">📳 震動：開</button>
         <button class="btn danger" id="btn-quit">結帳走人（結束這局）</button>
       </div>
     </section>
@@ -110,8 +114,10 @@
   <script src="js/venues.js"></script>
   <script src="js/save.js"></script>
   <script src="js/audio.js"></script>
+  <script src="js/haptics.js"></script>
   <script src="js/game.js"></script>
   <script src="js/events.js"></script>
+  <script src="js/specials.js"></script>
   <script src="js/render.js"></script>
   <script src="js/scenes.js"></script>
   <script src="js/ui.js"></script>

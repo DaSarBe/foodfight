@@ -278,6 +278,20 @@ FF.Render = (() => {
     const x = G.x + shakeX;
     const y = G.y + Math.sin(time * 2) * 2;
     const r = G.r;
+    const fed = g && g.fedFx ? g.fedFx.kind : null;
+    const ult = game && game.ult;
+
+    // 大絕招氣場
+    if (ult && ult.phase !== 'striking') {
+      const pulse = 0.5 + 0.5 * Math.sin(time * 14);
+      const aura = ctx.createRadialGradient(x, y, r * 0.6, x, y, r * 2.2);
+      aura.addColorStop(0, `rgba(255,40,60,${0.35 + 0.25 * pulse})`);
+      aura.addColorStop(1, 'rgba(255,40,60,0)');
+      ctx.fillStyle = aura;
+      ctx.beginPath();
+      ctx.arc(x, y, r * 2.2, 0, Math.PI * 2);
+      ctx.fill();
+    }
 
     // 身體（上衣）
     ctx.fillStyle = '#ff8fb1';
@@ -343,7 +357,37 @@ FF.Render = (() => {
     ctx.lineCap = 'round';
     const lookY = phone ? 4 : 0;
     const blink = Math.sin(time * 1.3) > 0.985;
-    if (scared || look) {
+    if (fed && !scared) {
+      for (const s of [-1, 1]) {
+        const cx = x + s * ex;
+        if (fed === 'love') {
+          // 愛心眼
+          ctx.fillStyle = '#ff3d7f';
+          ctx.beginPath();
+          ctx.moveTo(cx, ey + 7);
+          ctx.bezierCurveTo(cx - 13, ey - 2, cx - 6, ey - 12, cx, ey - 4);
+          ctx.bezierCurveTo(cx + 6, ey - 12, cx + 13, ey - 2, cx, ey + 7);
+          ctx.fill();
+        } else if (fed === 'yuck') {
+          // >  <
+          ctx.beginPath();
+          ctx.moveTo(cx - s * 7, ey - 6);
+          ctx.lineTo(cx + s * 5, ey);
+          ctx.lineTo(cx - s * 7, ey + 6);
+          ctx.stroke();
+        } else {
+          // 半瞇眼（沒感覺／吃飽了）
+          ctx.beginPath();
+          ctx.moveTo(cx - 8, ey + 1);
+          ctx.lineTo(cx + 8, ey + 1);
+          ctx.stroke();
+          ctx.beginPath();
+          ctx.arc(cx, ey + 1, 7, 0, Math.PI);
+          ctx.stroke();
+        }
+      }
+      ctx.fillStyle = '#3a2219';
+    } else if (scared || look) {
       const ox = scared ? Math.sin(time * 30) * 1.5 : 3;
       const oy = scared ? 0 : -3;
       for (const s of [-1, 1]) {
@@ -403,7 +447,12 @@ FF.Render = (() => {
     // 嘴巴
     const my = y + r * 0.48;
     ctx.lineWidth = 3.5;
-    if (scared) {
+    if (fed === 'yuck' && !scared) {
+      ctx.beginPath();
+      ctx.moveTo(x - 12, my + 2);
+      for (let i = 1; i <= 6; i++) ctx.lineTo(x - 12 + i * 4, my + 2 + (i % 2 ? -4 : 3));
+      ctx.stroke();
+    } else if (scared) {
       ctx.fillStyle = '#c2455a';
       ctx.beginPath();
       ctx.ellipse(x, my + 2, 10, 13, 0, 0, Math.PI * 2);
@@ -448,6 +497,12 @@ FF.Render = (() => {
 
     if (scared) {
       emoji(ctx, '😱', x + r * 0.95, y - r * 0.8, 28);
+    } else if (fed === 'yuck') {
+      emoji(ctx, '🤢', x + r * 0.95, y - r * 0.8, 26);
+    } else if (fed === 'love') {
+      emoji(ctx, '💕', x + r * 0.95, y - r * 0.85, 26 + Math.sin(time * 10) * 3);
+    } else if (ult && ult.phase !== 'striking') {
+      emoji(ctx, '🔥', x + r * 0.95, y - r * 0.85, 30 + Math.sin(time * 16) * 4);
     } else if (look) {
       emoji(ctx, '👀', x + r * 0.95, y - r * 0.85, 24);
     } else if (m === 'furious') {
@@ -672,7 +727,9 @@ FF.Render = (() => {
 
   function drawStrikeWarning(ctx, game, time) {
     const c = game.player.carry;
+    if (c && c.strike && c.strike.combo && c.strike.phase !== 'warn') drawComboPips(ctx, c, time);
     if (!c || !c.strike || c.strike.phase !== 'warn') return;
+    if (c.strike.combo) drawComboPips(ctx, c, time);
     const f = c.food;
     const blink = Math.sin(time * 30) > 0;
     ctx.strokeStyle = blink ? '#ff2d2d' : '#ffdd00';
@@ -681,11 +738,130 @@ FF.Render = (() => {
     ctx.arc(f.x, f.y, 36 + Math.sin(time * 30) * 4, 0, Math.PI * 2);
     ctx.stroke();
     emoji(ctx, '❗', f.x - 40, f.y - 40, 34);
-    if (game.strikesSeen <= 3 && !c.flinch) {
+    if (c.strike.combo) {
+      const s = c.strike;
+      text(ctx, c.flinch ? '手抖了閃不掉！' : `第 ${s.idx + 1}/${s.hits} 下！點！`, f.x, f.y + 52, c.flinch ? 18 : 24, c.flinch ? '#ddd' : '#fff', { stroke: c.flinch ? '#333' : '#d10000', strokeW: 6 });
+    } else if (game.strikesSeen <= 3 && !c.flinch) {
       text(ctx, '快點一下閃開！', f.x, f.y + 52, 22, '#fff', { stroke: '#d10000', strokeW: 6 });
     } else if (c.flinch) {
       text(ctx, '手抖了閃不掉！', f.x, f.y + 52, 18, '#ddd', { stroke: '#333', strokeW: 5 });
     }
+  }
+
+  // 連打進度：每一下一顆圓點
+  function drawComboPips(ctx, c, time) {
+    const s = c.strike;
+    if (s.phase === 'dodged' && s.idx >= s.hits) return;
+    const f = c.food;
+    const n = s.hits;
+    for (let i = 0; i < n; i++) {
+      const px = f.x - (n - 1) * 13 + i * 26;
+      const py = f.y + 82;
+      ctx.beginPath();
+      ctx.arc(px, py, 9, 0, Math.PI * 2);
+      ctx.fillStyle = i < s.idx ? '#3ddc6a' : i === s.idx ? (Math.sin(time * 20) > 0 ? '#ff2d2d' : '#ffdd00') : 'rgba(255,255,255,0.6)';
+      ctx.fill();
+      ctx.lineWidth = 2;
+      ctx.strokeStyle = 'rgba(60,10,0,0.7)';
+      ctx.stroke();
+    }
+    if (s.phase === 'gap') text(ctx, '還沒完！等下一個 ❗', f.x, f.y + 52, 18, '#ffe066', { stroke: '#7a2d00', strokeW: 5 });
+  }
+
+  // 大絕招：招式名稱橫幅、掃蕩標記、她嘴邊飛過去的食物
+  function drawUlt(ctx, game, time) {
+    const u = game.ult;
+    if (!u) return;
+    if (u.type === 'sweep') {
+      // 標記要被掃走的食物（依序編號）
+      u.targets.forEach((f, i) => {
+        if (f.state !== 'pot') return;
+        const R = 34 + Math.sin(time * 16 + i) * 3;
+        ctx.strokeStyle = u.cur === f ? '#ffffff' : '#ff2d55';
+        ctx.lineWidth = 4;
+        ctx.setLineDash([10, 6]);
+        ctx.lineDashOffset = time * 60;
+        ctx.beginPath();
+        ctx.arc(f.x, f.y, R, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.fillStyle = '#ff2d55';
+        ctx.beginPath();
+        ctx.arc(f.x + 26, f.y - 26, 11, 0, Math.PI * 2);
+        ctx.fill();
+        text(ctx, `${(u.nums && u.nums.get(f)) || i + 1}`, f.x + 26, f.y - 25, 14, '#fff');
+      });
+      for (const fl of u.flying) drawFood(ctx, game, fl.food, time, { noRing: true });
+    }
+    const showBanner = u.phase === 'charge' || u.phase === 'windup' || (u.phase === 'sweep' && u.t < 0.5);
+    if (showBanner) {
+      const total = u.type === 'sweep' ? FF.ULT.sweep.charge : FF.ULT.combo.windup;
+      const tIn = u.phase === 'sweep' ? total : u.t;
+      const k = Math.min(1, tIn * 5);
+      const y = 336;
+      ctx.save();
+      ctx.globalAlpha = 0.92;
+      ctx.fillStyle = 'rgba(120,0,20,0.85)';
+      ctx.beginPath();
+      ctx.moveTo(-10, y - 36);
+      ctx.lineTo(C.W + 10, y - 42);
+      ctx.lineTo(C.W + 10, y + 30);
+      ctx.lineTo(-10, y + 40);
+      ctx.closePath();
+      ctx.fill();
+      ctx.fillStyle = '#ffdd00';
+      ctx.fillRect(0, y + 36 - 3, C.W, 3);
+      ctx.globalAlpha = 1;
+      const sc = 1.6 - 0.6 * k;
+      ctx.translate(270, y - 10);
+      ctx.scale(sc, sc);
+      text(ctx, `💢 大絕招・${u.title}！`, 0, 0, 34, '#ffe066', { stroke: '#5a0010', strokeW: 8 });
+      ctx.restore();
+      text(ctx, u.sub, 270, y + 20, 15, '#fff', { stroke: 'rgba(60,0,10,0.8)', strokeW: 4 });
+      // 蓄力條
+      if (u.phase !== 'sweep') {
+        const left = Math.max(0, 1 - u.t / total);
+        ctx.fillStyle = 'rgba(0,0,0,0.35)';
+        roundRect(ctx, 150, y + 44, 240, 8, 4);
+        ctx.fill();
+        ctx.fillStyle = '#ffdd00';
+        roundRect(ctx, 150, y + 44, 240 * left, 8, 4);
+        ctx.fill();
+      }
+    }
+    if (u.type === 'combo' && u.phase === 'armed') {
+      const left = Math.max(0, 1 - u.t / FF.ULT.combo.wait);
+      const y = 318;
+      ctx.fillStyle = 'rgba(120,0,20,0.75)';
+      roundRect(ctx, 110, y - 18, 320, 36, 18);
+      ctx.fill();
+      text(ctx, `🥢 她在等你夾！下一塊連打 ${u.hits} 下`, 270, y, 16, '#ffe066');
+      ctx.fillStyle = '#ffdd00';
+      roundRect(ctx, 130, y + 12, 280 * left, 4, 2);
+      ctx.fill();
+    }
+  }
+
+  // 夾著食物時，提示可以點她的臉餵她
+  function drawFeedHint(ctx, game, time) {
+    const p = game.player;
+    if (p.state !== 'carry' || !p.carry || p.carry.feed) return;
+    if (game.stats.fed >= 3 || (game.anger < 40 && !game.ult)) return;
+    const G = C.gf;
+    const a = 0.75 + 0.25 * Math.sin(time * 8);
+    ctx.globalAlpha = a;
+    ctx.fillStyle = 'rgba(255,111,165,0.92)';
+    roundRect(ctx, G.x + 62, G.y + 22, 112, 30, 15);
+    ctx.fill();
+    text(ctx, '👆點臉餵她', G.x + 118, G.y + 38, 15, '#fff');
+    ctx.globalAlpha = 1;
+    ctx.strokeStyle = `rgba(255,111,165,${0.4 + 0.3 * Math.sin(time * 8)})`;
+    ctx.lineWidth = 3;
+    ctx.setLineDash([8, 6]);
+    ctx.beginPath();
+    ctx.arc(G.x, G.y + 4, G.r + 10, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.setLineDash([]);
   }
 
   function drawBanner(ctx, game) {
@@ -789,7 +965,15 @@ FF.Render = (() => {
     if (p.carry) drawFood(ctx, game, p.carry.food, time, { noRing: true });
     if (g.state === 'retract' && g.food) drawFood(ctx, game, g.food, time, { noRing: true });
 
-    drawChopsticks(ctx, g.tip, C.gfAnchor, '#f29bb8', '#b4466b');
+    if (game.ult) {
+      ctx.globalAlpha = 0.55 + Math.sin(time * 20) * 0.3;
+      ctx.fillStyle = '#ff2d55';
+      ctx.beginPath();
+      ctx.arc(g.tip.x, g.tip.y, 16, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.globalAlpha = 1;
+    }
+    drawChopsticks(ctx, g.tip, C.gfAnchor, game.ult ? '#ff5a7a' : '#f29bb8', game.ult ? '#8a0020' : '#b4466b');
     drawChopsticks(ctx, p.tip, C.playerAnchor, '#d9a066', '#7a4a1f');
     if (game.fx.chopsticks > 0) {
       ctx.globalAlpha = 0.5 + Math.sin(time * 12) * 0.3;
@@ -812,6 +996,8 @@ FF.Render = (() => {
       ctx.globalAlpha = 1;
     }
     drawStrikeWarning(ctx, game, time);
+    drawUlt(ctx, game, time);
+    drawFeedHint(ctx, game, time);
     drawParticles(ctx, game);
     drawFloaters(ctx, game);
     drawHUD(ctx, game, time);
