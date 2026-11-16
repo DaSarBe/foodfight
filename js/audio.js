@@ -96,6 +96,21 @@ FF.Audio = (() => {
     wave: () => [523, 659, 784].forEach((f, i) => tone(f, 0.14, { type: 'triangle', vol: 0.2, delay: i * 0.09 })),
     rare: () => [784, 988, 1175, 1568].forEach((f, i) => tone(f, 0.1, { type: 'sine', vol: 0.18, delay: i * 0.06 })),
     gameover: () => [440, 370, 311, 262].forEach((f, i) => tone(f, 0.25, { type: 'triangle', vol: 0.22, delay: i * 0.18 })),
+    bell: () => { tone(2093, 0.5, { type: 'sine', vol: 0.25 }); tone(2637, 0.4, { type: 'sine', vol: 0.12, delay: 0.01 }); },
+    ooh: () => { tone(500, 0.25, { type: 'triangle', vol: 0.18, slide: 300 }); tone(700, 0.3, { type: 'triangle', vol: 0.14, slide: 400, delay: 0.12 }); },
+    screech: () => {
+      tone(1400, 1.1, { type: 'sawtooth', vol: 0.1, slide: -500 });
+      tone(1460, 1.1, { type: 'sawtooth', vol: 0.08, slide: -520 });
+      noise(1.1, { vol: 0.25, freq: 3000, q: 6, sweep: -1200 });
+      [0, 0.3, 0.6, 0.9].forEach(d => tone(880, 0.15, { type: 'square', vol: 0.1, delay: d }));
+    },
+    crash: () => {
+      noise(0.6, { vol: 0.9, freq: 300, q: 0.5, type: 'lowpass' });
+      noise(0.5, { vol: 0.5, freq: 5000, q: 1, delay: 0.05 });
+      tone(90, 0.5, { type: 'sine', vol: 0.6, slide: -50 });
+      [0.1, 0.18, 0.27, 0.4].forEach(d => noise(0.08, { vol: 0.25, freq: 6000 + d * 4000, q: 8, delay: d }));
+    },
+    hero: () => [523, 659, 784, 1047, 1319].forEach((f, i) => tone(f, 0.18, { type: 'triangle', vol: 0.22, delay: i * 0.08 })),
     error: () => tone(200, 0.15, { type: 'square', vol: 0.12 }),
   };
 

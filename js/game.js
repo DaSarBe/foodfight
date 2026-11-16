@@ -42,8 +42,8 @@ FF.Game = class Game {
     this.spawnTimer = 0.4;
     this.player = { state: 'idle', tip: { ...C.playerRest }, target: null, carry: null };
     this.gf = { state: 'idle', tip: { x: 375, y: 245 }, timer: 2.2, target: null, food: null, prog: 0, chew: 0 };
-    this.fx = { chopsticks: 0, soup: 0, phone: 0, spicy: 0, steam: 0 };
-    this.fxMax = { chopsticks: 5, soup: 8, phone: 5, spicy: 9, steam: 6 };
+    this.fx = { chopsticks: 0, soup: 0, phone: 0, spicy: 0, steam: 0, look: 0 };
+    this.fxMax = { chopsticks: 5, soup: 8, phone: 5, spicy: 9, steam: 6, look: 3.5 };
     this.claim = null;
     this.eventTimer = 16;
     this.floaters = [];
@@ -54,6 +54,7 @@ FF.Game = class Game {
     this.banner = null;
     this.hintTimer = 6;
     this.favorite = pick(FF.FOODS);
+    this.venue = FF.VENUES.find(v => v.id === save.venue) || FF.VENUES[0];
     this.stats = { eaten: 0, perfect: 0, raw: 0, dodges: 0, knocked: 0, gfAte: 0, steals: 0, bestCombo: 0 };
     this.strikesSeen = 0;
     this.firstStrikeDone = false;
@@ -70,6 +71,7 @@ FF.Game = class Game {
     this.slowmo = 0;
     this.dodgeFlash = 0;
     this.shockwaves = [];
+    this.initEvents();
 
     // 開局先放幾樣食物，熟度錯開
     for (let i = 0; i < 4; i++) this.spawnFood(this.randomFoodDef(), { t: i * 0.7, quiet: true });
@@ -187,6 +189,11 @@ FF.Game = class Game {
       }
       return;
     }
+    if (this.crash) {
+      this.updateCrash(dt);
+      this.updateFx(dt);
+      return;
+    }
     const C = FF.CONFIG;
     const D = FF.DIFF;
     const { rand, clamp } = FF.util;
@@ -238,6 +245,7 @@ FF.Game = class Game {
 
     this.updatePlayer(dt);
     this.updateGF(dt);
+    this.updateEvents(dt);
 
     this.foods = this.foods.filter(f => f.state !== 'gone');
 
@@ -454,7 +462,7 @@ FF.Game = class Game {
       this.say(pick(FF.LINES.steal), 2.2, true);
     }
     // 女友要不要打掉？
-    const canStrike = ['idle', 'reach', 'hover', 'return'].includes(g.state) && this.fx.chopsticks <= 0 && this.fx.phone <= 0;
+    const canStrike = ['idle', 'reach', 'hover', 'return'].includes(g.state) && this.fx.chopsticks <= 0 && !this.distracted();
     if (!canStrike) return;
     const forced = !this.firstStrikeDone && this.t >= this.firstStrikeAt;
     let chance = FF.DIFF.strikeChance(this.wave) + (this.anger / 100) * 0.25 - this.mods.gripChance;
@@ -681,7 +689,7 @@ FF.Game = class Game {
     const { rand, pick } = FF.util;
     const rest = { x: 375, y: 245 };
     const reach = D.gfReach(w);
-    const phone = this.fx.phone > 0;
+    const phone = this.distracted();
 
     if (phone && ['reach', 'hover'].includes(g.state)) {
       g.state = 'return';
@@ -857,6 +865,7 @@ FF.Game = class Game {
       return;
     }
     if (this.paused) return;
+    if (this.tapEvents(x, y)) return;
     for (const b of L.items) {
       if (hitC(b)) {
         this.useItem(b.id);
@@ -949,10 +958,13 @@ FF.Game = class Game {
     };
     const base = parts.time + parts.score + parts.wave;
     const bonus = Math.floor(base * (this.mods.ticketMul - 1));
-    const total = Math.max(T.min, base + bonus);
+    const venueBonus = Math.floor(base * this.venue.bonus);
+    const total = Math.max(T.min, base + bonus + venueBonus);
     const s = this.save;
     const best = s.best;
     const newRecord = this.score > best.score;
+    const prevWave = best.wave;
+    const unlocked = FF.VENUES.filter(v => v.unlockWave > prevWave && v.unlockWave <= this.wave);
     best.score = Math.max(best.score, this.score);
     best.time = Math.max(best.time, secs);
     best.wave = Math.max(best.wave, this.wave);
@@ -969,7 +981,9 @@ FF.Game = class Game {
       time: secs,
       wave: this.wave,
       stats: { ...this.stats },
-      tickets: { ...parts, bonus, total, min: total === T.min && base + bonus < T.min },
+      tickets: { ...parts, bonus, venueBonus, venueName: this.venue.name, total, min: total === T.min && base + bonus + venueBonus < T.min },
+      unlocked,
+      venue: this.venue,
       newRecord,
     };
     const r = this.result;

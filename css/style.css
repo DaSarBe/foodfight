@@ -193,3 +193,13 @@ h3 small { font-size: 0.7em; color: #a0704f; font-weight: normal; }
   pointer-events: none;
   z-index: 10;
 }
+
+/* 場地 */
+.venue-btn b { color: #c2412b; }
+.venue-tip { margin: 0; font-size: 0.85em; color: #8a5a3a; }
+.row.venue { cursor: pointer; border: 0.15em solid transparent; }
+.row.venue.selected { border-color: #ff7a59; background: #fff3ea; }
+.row.venue.locked { cursor: default; opacity: 0.6; filter: grayscale(0.6); }
+.row .pick { font-weight: bold; font-size: 0.9em; color: #c2412b; white-space: nowrap; }
+.unlock { background: linear-gradient(90deg, #ffe066, #ffb36b); border-radius: 0.9em; padding: 0.6em; font-size: 1.05em; color: #6b2a00; animation: pulse 0.9s ease-in-out infinite; }
+@keyframes pulse { 50% { transform: scale(1.04); } }

@@ -47,27 +47,12 @@ FF.Render = (() => {
   }
 
   // ---------- 背景 ----------
-  function drawRoom(ctx) {
-    const wall = ctx.createLinearGradient(0, 0, 0, 260);
-    wall.addColorStop(0, '#ffe2c4');
-    wall.addColorStop(1, '#ffcfa3');
-    ctx.fillStyle = wall;
-    ctx.fillRect(0, 0, C.W, 260);
-    // 牆上的燈籠點綴
-    ctx.globalAlpha = 0.35;
-    for (let i = 0; i < 6; i++) {
-      ctx.fillStyle = i % 2 ? '#ff9a7a' : '#ffb98a';
-      ctx.beginPath();
-      ctx.arc(45 + i * 90, 64, 10, 0, Math.PI * 2);
-      ctx.fill();
-    }
-    ctx.globalAlpha = 1;
-  }
-
-  function drawTable(ctx) {
+  const TABLES = [['#b9733f', '#8a4f28'], ['#9c6b4a', '#6e4a30'], ['#c08552', '#8f5a2e'], ['#8d6e4f', '#5f4733']];
+  function drawTable(ctx, tableNo = 1) {
+    const tc = TABLES[(tableNo - 1) % TABLES.length];
     const g = ctx.createLinearGradient(0, 255, 0, C.H);
-    g.addColorStop(0, '#b9733f');
-    g.addColorStop(1, '#8a4f28');
+    g.addColorStop(0, tc[0]);
+    g.addColorStop(1, tc[1]);
     ctx.fillStyle = g;
     ctx.fillRect(0, 255, C.W, C.H - 255);
     ctx.strokeStyle = 'rgba(0,0,0,0.08)';
@@ -286,6 +271,8 @@ FF.Render = (() => {
     const g = game ? game.gf : null;
     const chewing = g && (g.state === 'chew' || g.state === 'retract');
     const phone = game && game.fx.phone > 0;
+    const look = game && game.fx.look > 0 && !phone;
+    const scared = game && game.crash && game.crash.phase !== 'moving';
     const striking = g && (g.state === 'strikeWarn' || g.state === 'strikeAim');
     const shakeX = m === 'furious' ? Math.sin(time * 40) * 1.5 : 0;
     const x = G.x + shakeX;
@@ -356,7 +343,21 @@ FF.Render = (() => {
     ctx.lineCap = 'round';
     const lookY = phone ? 4 : 0;
     const blink = Math.sin(time * 1.3) > 0.985;
-    if (phone) {
+    if (scared || look) {
+      const ox = scared ? Math.sin(time * 30) * 1.5 : 3;
+      const oy = scared ? 0 : -3;
+      for (const s of [-1, 1]) {
+        ctx.fillStyle = '#fff';
+        ctx.beginPath();
+        ctx.arc(x + s * ex, ey, scared ? 10 : 8, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+        ctx.fillStyle = '#3a2219';
+        ctx.beginPath();
+        ctx.arc(x + s * ex + ox, ey + oy, scared ? 3 : 4, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    } else if (phone) {
       for (const s of [-1, 1]) {
         ctx.beginPath();
         ctx.arc(x + s * ex, ey + 4, 6, 0.15 * Math.PI, 0.85 * Math.PI);
@@ -402,7 +403,17 @@ FF.Render = (() => {
     // 嘴巴
     const my = y + r * 0.48;
     ctx.lineWidth = 3.5;
-    if (chewing) {
+    if (scared) {
+      ctx.fillStyle = '#c2455a';
+      ctx.beginPath();
+      ctx.ellipse(x, my + 2, 10, 13, 0, 0, Math.PI * 2);
+      ctx.fill();
+    } else if (look) {
+      ctx.fillStyle = '#c2455a';
+      ctx.beginPath();
+      ctx.ellipse(x + 2, my, 5, 6, 0, 0, Math.PI * 2);
+      ctx.fill();
+    } else if (chewing) {
       const o = 3 + Math.abs(Math.sin(time * 18)) * 5;
       ctx.fillStyle = '#c2455a';
       ctx.beginPath();
@@ -435,7 +446,11 @@ FF.Render = (() => {
       ctx.fill();
     }
 
-    if (m === 'furious') {
+    if (scared) {
+      emoji(ctx, '😱', x + r * 0.95, y - r * 0.8, 28);
+    } else if (look) {
+      emoji(ctx, '👀', x + r * 0.95, y - r * 0.85, 24);
+    } else if (m === 'furious') {
       emoji(ctx, '💢', x + r * 0.85, y - r * 0.85, 30 + Math.sin(time * 12) * 3);
     } else if (m === 'annoyed') {
       emoji(ctx, '💧', x + r * 0.9, y - r * 0.4, 20);
@@ -506,6 +521,7 @@ FF.Render = (() => {
       ['soup', '🍲', '加湯'],
       ['spicy', '🌶️', '辣鍋'],
       ['steam', '♨️', '蒸氣'],
+      ['look', '👀', '她看外面'],
     ];
     let ly = 196;
     for (const [k, ic, name] of labels) {
@@ -730,9 +746,9 @@ FF.Render = (() => {
     if (game.shake > 0) {
       ctx.translate((Math.random() - 0.5) * game.shake, (Math.random() - 0.5) * game.shake);
     }
-    drawRoom(ctx);
+    FF.Scenes.drawBackground(ctx, game.venue, time, game);
     drawGF(ctx, game, time);
-    drawTable(ctx);
+    drawTable(ctx, game.tableNo);
     drawPot(ctx, time, game.fx.spicy > 0, game.fx.soup);
 
     // 女友瞄準 / 指定 的提示
@@ -801,6 +817,7 @@ FF.Render = (() => {
     drawHUD(ctx, game, time);
     drawBubble(ctx, game);
     drawItems(ctx, game, time);
+    FF.Scenes.drawEvents(ctx, game, time);
     drawBanner(ctx, game);
     ctx.restore();
 
@@ -831,7 +848,8 @@ FF.Render = (() => {
         demoFoods.push({ def, a, r: 70 + (i % 3) * 40, x: P.x, y: P.y, phase: i, rot: 0, pop: 0, state: 'menu' });
       });
     }
-    drawRoom(ctx);
+    const venue = FF.VENUES.find(v => v.id === FF.Save.data.venue) || FF.VENUES[0];
+    FF.Scenes.drawBackground(ctx, venue, time, null);
     drawGF(ctx, null, time);
     drawTable(ctx);
     drawPot(ctx, time, false, 0);

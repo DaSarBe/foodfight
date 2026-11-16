@@ -153,6 +153,9 @@ FF.GRADES = [
 // 依本局數據產生幽默短評，依序檢查，最多取兩則
 FF.QUIPS = [
   r => r.newRecord && '🏆 新紀錄！她說這是你們交往以來你最認真的一次。',
+  r => r.stats.crashFails >= 1 && '🚗 車子撞進來你愣住了，她已經在 IG 發文「男友靠不住」。',
+  r => r.stats.saves >= 2 && `🦸 救了她 ${r.stats.saves} 次，保險公司想找你代言。`,
+  r => r.stats.pitchesBought >= 3 && `🛍️ 被推銷成功 ${r.stats.pitchesBought} 次，店員已經把你加進 VIP 群組。`,
   r => r.stats.perfect === 0 && r.time > 20 && '🫗 一塊完美的都沒夾到，你是來喝湯的嗎？',
   r => r.stats.raw >= 3 && `🤢 生的吃了 ${r.stats.raw} 次，她已經幫你查好腸胃科門診時間。`,
   r => r.stats.dodges >= 8 && `🥋 閃過 ${r.stats.dodges} 次筷子攻擊，她懷疑你偷偷練過詠春。`,

@@ -18,6 +18,7 @@
         <p class="tagline">跟女朋友的火鍋攻防戰</p>
         <div class="tickets-line">🎫 飯票 <b id="menu-tickets">0</b></div>
         <button class="btn primary" id="btn-start">開動！</button>
+        <button class="btn venue-btn" id="btn-venue">📍 場地：<b id="menu-venue">都市街邊火鍋</b></button>
         <button class="btn" id="btn-shop">🛒 商店</button>
         <button class="btn" id="btn-howto">📖 玩法說明</button>
         <div class="best" id="menu-best"></div>
@@ -36,6 +37,10 @@
           <li><span class="big">😤</span>搶她的食物、搶她指定的食物，她的怒氣會飆高；讓她吃到東西會消氣。</li>
           <li><span class="big">🍚</span>你的飽足感會一直下降，要記得吃。</li>
           <li><span class="big">💀</span>怒氣滿了，或你餓到飽足感歸零，遊戲結束。在「搶」與「讓」之間取捨吧！</li>
+          <li><span class="big">🧑‍🍳</span>服務員會跑來推銷，推銷卡會擋住鍋子！按「不用，謝謝」趕他走，或花 30 分買個東西，看她開不開心。</li>
+          <li><span class="big">👀</span>窗外偶爾會發生意外，她轉頭去看的時候不會搶也不會打你，趁機多夾幾塊！</li>
+          <li><span class="big">🚗</span>有車撞進餐廳時，快按「帶她換桌！」。救到她會大大消氣，愣住的話她會超生氣，鍋子還會翻一半。</li>
+          <li><span class="big">📍</span>撐到越後面的波數會解鎖新場地，每個場地都有不同的推銷、意外和撞進來的車。</li>
           <li><span class="big">🎫</span>每局結束都能拿到飯票，去商店升級能力、買道具。</li>
           <li><span class="big">⌨️</span>電腦：空白鍵閃避、1～4 使用道具、Esc 暫停。</li>
         </ul>
@@ -60,6 +65,19 @@
       </div>
     </section>
 
+    <section id="venues" class="screen hidden">
+      <div class="panel shop-panel">
+        <div class="shop-head">
+          <button class="btn small" id="btn-venue-back">← 返回</button>
+          <h2>📍 選擇場地</h2>
+          <span></span>
+        </div>
+        <p class="venue-tip">撐到越後面的波數，就能解鎖新場地。越難搞的場地，飯票加成越高！</p>
+        <div class="shop-body scroll" id="venue-list"></div>
+        <button class="btn primary" id="btn-venue-start">開動！</button>
+      </div>
+    </section>
+
     <section id="pause" class="screen hidden">
       <div class="panel">
         <h2>⏸ 暫停中</h2>
@@ -77,6 +95,7 @@
         <div class="gf-say" id="res-say"></div>
         <ul class="quips" id="res-quips"></ul>
         <div class="res-stats" id="res-stats"></div>
+        <div class="unlock hidden" id="res-unlock"></div>
         <div class="res-tickets" id="res-tickets"></div>
         <button class="btn primary" id="btn-again">再來一局</button>
         <button class="btn" id="btn-res-shop">🛒 去商店</button>
@@ -88,10 +107,13 @@
   </div>
 
   <script src="js/config.js"></script>
+  <script src="js/venues.js"></script>
   <script src="js/save.js"></script>
   <script src="js/audio.js"></script>
   <script src="js/game.js"></script>
+  <script src="js/events.js"></script>
   <script src="js/render.js"></script>
+  <script src="js/scenes.js"></script>
   <script src="js/ui.js"></script>
   <script src="js/main.js"></script>
 </body>

@@ -17,6 +17,7 @@ FF.Save = (() => {
       muted: false,
       seenTutorial: false,
       runs: 0,
+      venue: 'city',
     };
   }
 
@@ -43,6 +44,7 @@ FF.Save = (() => {
     d.muted = !!raw.muted;
     d.seenTutorial = !!raw.seenTutorial;
     d.runs = num(raw.runs, 0);
+    if (FF.VENUES.some(v => v.id === raw.venue)) d.venue = raw.venue;
     return d;
   }
 

@@ -3,7 +3,7 @@ window.FF = window.FF || {};
 
 FF.UI = (() => {
   const $ = id => document.getElementById(id);
-  const screens = ['menu', 'howto', 'shop', 'pause', 'result'];
+  const screens = ['menu', 'howto', 'shop', 'venues', 'pause', 'result'];
   let current = 'menu';
   let howtoReturn = 'menu';
   let toastTimer = null;
@@ -13,6 +13,7 @@ FF.UI = (() => {
     screens.forEach(s => $(s).classList.toggle('hidden', s !== name));
     if (name === 'menu') renderMenu();
     if (name === 'shop') renderShop();
+    if (name === 'venues') renderVenues();
   }
 
   function toast(msg) {
@@ -26,6 +27,8 @@ FF.UI = (() => {
   function renderMenu() {
     const s = FF.Save.data;
     $('menu-tickets').textContent = s.tickets;
+    const v = FF.VENUES.find(x => x.id === s.venue) || FF.VENUES[0];
+    $('menu-venue').textContent = `${v.icon} ${v.name}`;
     $('menu-best').innerHTML = s.runs
       ? `🏆 最高分 <b>${s.best.score}</b>　⏱ 最久 <b>${FF.Render.fmtTime(s.best.time)}</b>　🌊 第 <b>${s.best.wave}</b> 波`
       : '第一次來？先看看玩法說明吧！';
@@ -87,6 +90,35 @@ FF.UI = (() => {
     }
   }
 
+  function renderVenues() {
+    const s = FF.Save.data;
+    const list = $('venue-list');
+    list.innerHTML = '';
+    for (const v of FF.VENUES) {
+      const open = s.best.wave >= v.unlockWave;
+      const sel = s.venue === v.id;
+      const row = document.createElement('div');
+      row.className = 'row venue' + (sel ? ' selected' : '') + (open ? '' : ' locked');
+      row.innerHTML = `
+        <div class="ic">${open ? v.icon : '🔒'}</div>
+        <div class="info">
+          <div class="name">${v.name} ${v.bonus ? `<span class="own">飯票 +${Math.round(v.bonus * 100)}%</span>` : ''}</div>
+          <div class="desc">${open ? v.desc : `最高撐到第 ${v.unlockWave} 波解鎖（目前第 ${s.best.wave} 波）`}</div>
+          ${open ? `<div class="desc">撞進來的是：${v.vehicle.emoji} ${v.vehicle.name}</div>` : ''}
+        </div>
+        <div class="pick">${sel ? '✅ 使用中' : open ? '選這裡' : ''}</div>`;
+      if (open) {
+        row.addEventListener('click', () => {
+          FF.Audio.play('click');
+          s.venue = v.id;
+          FF.Save.persist();
+          renderVenues();
+        });
+      }
+      list.appendChild(row);
+    }
+  }
+
   function keepScroll(fn) {
     const body = document.querySelector('.shop-body');
     const y = body.scrollTop;
@@ -140,12 +172,16 @@ FF.UI = (() => {
       <div><span>💨 閃過她的筷子</span><b>${st.dodges}</b></div>
       <div><span>💥 被打掉</span><b>${st.knocked}</b></div>
       <div><span>💗 她吃了幾口</span><b>${st.gfAte}</b></div>`;
+    const un = $('res-unlock');
+    un.classList.toggle('hidden', !r.unlocked.length);
+    un.innerHTML = r.unlocked.map(v => `🎉 解鎖新場地：${v.icon} <b>${v.name}</b>`).join('<br>');
     const t = r.tickets;
     $('res-tickets').innerHTML = `
       <div><span>存活時間</span><span>+${t.time}</span></div>
       <div><span>分數</span><span>+${t.score}</span></div>
       <div><span>波次獎勵</span><span>+${t.wave}</span></div>
       ${t.bonus ? `<div><span>飯票加成</span><span>+${t.bonus}</span></div>` : ''}
+      ${t.venueBonus ? `<div><span>場地加成（${t.venueName}）</span><span>+${t.venueBonus}</span></div>` : ''}
       ${t.min ? '<div><span>安慰獎（保底）</span><span>✔</span></div>' : ''}
       <div class="total"><span>🎫 獲得飯票</span><span>+${t.total}</span></div>
       <div><span>目前持有</span><span>🎫 ${FF.Save.data.tickets}</span></div>`;
@@ -161,6 +197,9 @@ FF.UI = (() => {
       });
     click('btn-start', () => app.requestStart());
     click('btn-shop', () => show('shop'));
+    click('btn-venue', () => show('venues'));
+    click('btn-venue-back', () => show('menu'));
+    click('btn-venue-start', () => app.requestStart());
     click('btn-howto', () => { howtoReturn = 'menu'; show('howto'); });
     click('btn-howto-ok', () => {
       if (howtoReturn === 'start') app.startGame();
