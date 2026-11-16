@@ -26,6 +26,18 @@ FF.PITCHES_COMMON = [
   '要不要試試我們的「已讀不回鍋」？湯一直滾，就是不會熟。',
 ];
 
+// 好推銷：買了真的有用（effect 對應 events.js 的 applyGoodPitch）
+FF.PITCHES_GOOD = [
+  { text: '今天店慶，招牌和牛免費加一盤！只要意思意思 30 分就好～', effect: 'rare', label: '和牛下鍋！' },
+  { text: '廚房多切了一盤綜合拼盤，已經燙得差不多了，要不要直接倒進去？', effect: 'platter', label: '拼盤下鍋！' },
+  { text: '小姐今天生日嗎？我們送一支冰淇淋給她，男朋友出 30 分就好。', effect: 'dessert', label: '她超開心！' },
+  { text: '這是我們新的「夾肉神筷」試用品，用了手速直接翻倍喔！', effect: 'chopsticks', label: '神筷上手！' },
+  { text: '先生看起來好餓，送你一碗暖胃白飯，吃了馬上有力氣。', effect: 'rice', label: '飽足 +35！' },
+  { text: '門口扭蛋機送你一枚代幣，給女朋友去轉一下？她會去好一陣子。', effect: 'gacha', label: '她跑去扭蛋了！' },
+  { text: '集點卡剛好集滿了！送你一個隨機道具，只收 30 分手續費。', effect: 'item', label: '獲得道具！' },
+  { text: '湯快乾了吧？我幫你們加高湯，順便把爐火轉小一點。', effect: 'soup', label: '加湯完成！' },
+];
+
 FF.LOOK_LINES = ['欸欸欸你看外面！', '哇靠那是什麼！', '等一下，我要拍一下', '你看你看！好扯！'];
 
 FF.CRASH_LINES = {
@@ -40,6 +52,7 @@ FF.WAITER_LINES = {
   leave: ['那我等一下再來喔～', '我先去隔壁桌推銷'],
   gfLike: ['哇你好貼心❤️', '你怎麼知道我想要！', '好啦今天先不跟你計較'],
   gfHate: ['你買這個要幹嘛啦', '你是不是很好騙？', '…你錢很多喔？'],
+  gfDeal: ['欸這個真的划算！', '你今天難得聰明一次', '好啦，這次算你會買'],
 };
 
 FF.VENUES = [
@@ -53,6 +66,7 @@ FF.VENUES = [
     waiter: { emoji: '🧑‍🍳', name: '熱情店員' },
     vehicle: { emoji: '🚗', name: '失控的轎車' },
     traffic: ['🚗', '🚕', '🚌', '🛵', '🚙', '🛵', '🚚'],
+    goodPitches: [{ text: '隔壁超商咖啡第二杯半價，我幫你們買好了，提神醒腦！', effect: 'rice', label: '精神來了！' }],
     pitches: [
       '要不要辦 YouBike 聯名卡？吃太飽可以騎回家消化。',
       '停車費我們可以幫你折抵，只要再點三盤肉就好。',
@@ -77,6 +91,7 @@ FF.VENUES = [
     waiter: { emoji: '👨‍🍳', name: '攤販老闆' },
     vehicle: { emoji: '🛻', name: '失控的小貨車' },
     traffic: ['🛵', '🚶', '🛵', '🚶‍♀️', '🛵'],
+    goodPitches: [{ text: '老闆說你們很有夫妻臉，雞排請她吃！', effect: 'dessert', label: '她超開心！' }],
     pitches: [
       '要不要玩打彈珠？贏了送你女朋友一隻比你還大的娃娃。',
       '隔壁臭豆腐要不要加購？保證讓你們今晚保持安全距離。',
@@ -101,6 +116,7 @@ FF.VENUES = [
     waiter: { emoji: '🧑‍🦱', name: '曬黑的店員' },
     vehicle: { emoji: '🚙', name: '失控的沙灘車' },
     traffic: ['🛵', '🚙', '🛵', '🚐'],
+    goodPitches: [{ text: '剛撈上來的東港黑鮪魚，算你成本價，直接下鍋！', effect: 'rare', label: '黑鮪魚下鍋！' }],
     pitches: [
       '東港黑鮪魚季限定，一片就讓你的薪水跟鮪魚一樣游走。',
       '要不要加點萬巒豬腳？吃完運氣變好，桌位就不會被車撞。',
@@ -126,6 +142,7 @@ FF.VENUES = [
     waiter: { emoji: '🤵', name: '高級服務生' },
     vehicle: { emoji: '🚕', name: '失控的計程車' },
     traffic: ['🚕', '🚕', '🚌', '🚓', '🚕'],
+    goodPitches: [{ text: '倒數特別招待！跨年豪華拼盤只收 30 分服務費！', effect: 'platter', label: '豪華拼盤下鍋！' }],
     pitches: [
       '要不要買跨年發光頭箍？倒數的時候她才找得到你。',
       '我們有「明年一定不被分手」護身符，今天買一送一。',

@@ -21,6 +21,7 @@ Object.assign(FF.Game.prototype, {
     this.stats.saves = 0;
     this.stats.crashFails = 0;
     this.stats.pitchesBought = 0;
+    this.stats.goodDeals = 0;
   },
 
   distracted() {
@@ -83,11 +84,19 @@ Object.assign(FF.Game.prototype, {
   // ---------- 服務員 ----------
   startWaiter() {
     const v = this.venue;
-    const pool = v.pitches.concat(FF.PITCHES_COMMON);
-    let text = FF.util.pick(pool);
-    if (this.lastPitch === text) text = FF.util.pick(pool);
+    const { pick } = FF.util;
+    let good = null;
+    let text;
+    if (Math.random() < 0.35) {
+      good = pick((v.goodPitches || []).concat(FF.PITCHES_GOOD));
+      text = good.text;
+    } else {
+      const pool = v.pitches.concat(FF.PITCHES_COMMON);
+      text = pick(pool);
+      if (this.lastPitch === text) text = pick(pool);
+    }
     this.lastPitch = text;
-    this.waiter = { phase: 'in', t: 0, text, life: 7.5 };
+    this.waiter = { phase: 'in', t: 0, text, good, life: 7.5 };
     FF.Audio.play('bell');
   },
 
@@ -108,6 +117,56 @@ Object.assign(FF.Game.prototype, {
     this.waiter.phase = 'out';
     this.waiter.t = 0;
     this.waiter.bye = line;
+  },
+
+  applyGoodPitch(def) {
+    const { pick, rand } = FF.util;
+    this.stats.goodDeals++;
+    FF.Audio.play('hero');
+    this.float(270, 500, `划算！${def.label}`, '#7dffb0', 30, 1.5);
+    this.burst(270, 560, 16, ['#ffe066', '#7dffb0', '#fff'], { speed: 260, size: 6, life: 0.6 });
+    let line = pick(FF.WAITER_LINES.gfDeal);
+    switch (def.effect) {
+      case 'rare': {
+        const f = this.spawnFood(pick(FF.RARE_FOODS));
+        f.t = f.def.raw - 0.6;
+        break;
+      }
+      case 'platter':
+        for (let i = 0, n = Math.max(2, Math.min(5, 16 - this.potFoods().length)); i < n; i++) {
+          const f = this.spawnFood(this.randomFoodDef(), { quiet: i > 0 });
+          f.t = f.def.raw - rand(0.2, 1.2);
+        }
+        break;
+      case 'dessert':
+        this.anger = Math.max(0, this.anger - 30);
+        line = pick(['哇冰淇淋！你最好了❤️', '你今天怎麼這麼貼心！', '好啦…我原諒你今天所有的搶肉']);
+        this.burst(FF.CONFIG.gf.x, FF.CONFIG.gf.y, 6, ['#fff'], { speed: 140, size: 22, life: 1.1, gravity: -40, emoji: '🍦' });
+        break;
+      case 'chopsticks':
+        this.fx.chopsticks = this.fxMax.chopsticks;
+        break;
+      case 'rice':
+        this.sat = Math.min(this.mods.satMax, this.sat + 35);
+        break;
+      case 'gacha':
+        this.fx.phone = 6;
+        this.cancelStrike();
+        line = pick(['我去轉一下扭蛋！等我！', '扭蛋！我要抽隱藏版！']);
+        break;
+      case 'item': {
+        const it = pick(FF.ITEMS);
+        this.save.items[it.id] = Math.min(99, (this.save.items[it.id] || 0) + 1);
+        FF.Save.persist();
+        this.float(270, 540, `${it.icon} ${it.name} +1`, '#ffe066', 24, 1.5);
+        break;
+      }
+      case 'soup':
+        for (const f of this.potFoods()) if (this.stage(f) === 'over') f.t = f.def.raw + 0.05;
+        this.fx.soup = this.fxMax.soup;
+        break;
+    }
+    this.say(line, 2.4, true);
   },
 
   // ---------- 窗外意外 ----------
@@ -231,13 +290,16 @@ Object.assign(FF.Game.prototype, {
         FF.Audio.play('coin');
         this.score = Math.max(0, this.score - 30);
         this.stats.pitchesBought++;
-        this.float(270, 520, '買了！-30 分', '#ffd0a0', 26);
-        if (Math.random() < 0.5) {
-          this.anger = Math.max(0, this.anger - 15);
+        if (w.good) {
+          this.applyGoodPitch(w.good);
+        } else if (Math.random() < 0.3) {
+          this.float(270, 520, '買了！-30 分', '#ffd0a0', 26);
+          this.anger = Math.max(0, this.anger - 10);
           this.say(pick(FF.WAITER_LINES.gfLike), 2.4, true);
           this.burst(FF.CONFIG.gf.x, FF.CONFIG.gf.y, 4, ['#fff'], { speed: 120, size: 20, life: 1, gravity: -40, emoji: '💗' });
         } else {
-          this.anger += 5 * this.mods.angerMul;
+          this.float(270, 520, '買了！-30 分', '#ffd0a0', 26);
+          this.anger += 6 * this.mods.angerMul;
           this.say(pick(FF.WAITER_LINES.gfHate), 2.4, true);
         }
         this.waiterLeave(pick(FF.WAITER_LINES.buy));
