@@ -145,9 +145,29 @@ h3 small { font-size: 0.7em; color: #a0704f; font-weight: normal; }
 .buy:disabled { background: #e8ddd2; color: #a39486; box-shadow: 0 0.18em 0 #c9bcae; cursor: default; }
 
 /* 結算 */
-.res-line { margin: 0; font-size: 1.1em; color: #8a3d1a; }
-.record { font-size: 1.4em; font-weight: bold; color: #e8414f; animation: pulse 0.8s ease-in-out infinite; }
-@keyframes pulse { 50% { transform: scale(1.08); } }
+.grade-card { display: flex; align-items: center; gap: 0.8em; background: #fff; border-radius: 0.9em; padding: 0.6em 0.9em; text-align: left; }
+.grade-badge {
+  flex: 0 0 auto;
+  width: 2.4em; height: 2.4em;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.9em; font-weight: 900; color: #fff;
+  background: radial-gradient(circle at 35% 30%, #fff8, transparent 45%), var(--gc);
+  box-shadow: 0 0.12em 0 rgba(0,0,0,0.2), inset 0 0 0 0.12em #fff6;
+  text-shadow: 0 0.06em 0 rgba(0,0,0,0.3);
+  animation: stamp 0.45s cubic-bezier(.2,1.6,.4,1) both;
+}
+@keyframes stamp { from { transform: scale(2.4) rotate(-20deg); opacity: 0; } to { transform: none; opacity: 1; } }
+.grade-label { font-size: 0.8em; color: #a0704f; }
+.grade-title { font-size: 1.35em; font-weight: bold; color: #c2412b; }
+.grade-stars { color: #ffb020; font-size: 1.1em; letter-spacing: 0.1em; }
+.grade-stars span { color: #ead9c6; }
+.gf-say { display: flex; gap: 0.5em; align-items: flex-start; background: #ffe9f0; border-radius: 0.9em; padding: 0.6em 0.8em; text-align: left; }
+.gf-say .gf-face { font-size: 1.8em; line-height: 1; }
+.gf-say p { margin: 0; color: #9a2f55; font-weight: bold; line-height: 1.5; }
+.quips { list-style: none; margin: 0; padding: 0; text-align: left; font-size: 0.92em; color: #7a4a2a; line-height: 1.5; }
+.quips li { padding: 0.25em 0.2em; border-bottom: 0.08em dashed #f0c9a0; }
+.res-stats { display: grid; grid-template-columns: 1fr 1fr; column-gap: 1em; font-size: 0.88em; }
 .res-stats, .res-tickets {
   background: #fff;
   border-radius: 0.9em;

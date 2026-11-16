@@ -66,6 +66,10 @@ FF.Game = class Game {
     this.bowl = [];
     this.bowlBounce = 0;
     this.lastTap = null;
+    this.dodgeStreak = 0;
+    this.slowmo = 0;
+    this.dodgeFlash = 0;
+    this.shockwaves = [];
 
     // 開局先放幾樣食物，熟度錯開
     for (let i = 0; i < 4; i++) this.spawnFood(this.randomFoodDef(), { t: i * 0.7, quiet: true });
@@ -170,6 +174,10 @@ FF.Game = class Game {
   // ---------- 主更新 ----------
   update(dt) {
     if (this.paused) return;
+    if (this.slowmo > 0) {
+      this.slowmo -= dt;
+      dt *= 0.3;
+    }
     if (this.over) {
       this.updateFx(dt);
       this.overTimer -= dt;
@@ -271,6 +279,10 @@ FF.Game = class Game {
     }
     this.shake = Math.max(0, this.shake - dt * 40);
     this.flash = Math.max(0, this.flash - dt * 3);
+    this.dodgeFlash = Math.max(0, this.dodgeFlash - dt * 4);
+    if (this.gf.pout > 0) this.gf.pout -= dt;
+    for (const w of this.shockwaves) w.t += dt;
+    this.shockwaves = this.shockwaves.filter(w => w.t < 0.35);
     this.bowlBounce = Math.max(0, this.bowlBounce - dt * 4);
     for (const f of this.foods) f.pop = Math.max(0, f.pop - dt);
   }
@@ -530,6 +542,7 @@ FF.Game = class Game {
     f.vy = FF.util.rand(-16, 16);
     this.stats.knocked++;
     this.combo = 0;
+    this.dodgeStreak = 0;
     this.anger -= 3;
     this.say(pick(FF.LINES.strike), 2.2, true);
     p.state = 'return';
@@ -549,10 +562,20 @@ FF.Game = class Game {
       this.gf.state = 'slamMiss';
       this.gf.slamTarget = { x: pos.x, y: pos.y };
       this.gf.timer = 0.35;
-      FF.Audio.play('dodge');
-      this.score += 5;
-      this.float(pos.x, pos.y - 34, '閃過！+5', '#7dffb0', 30);
-      this.burst(pos.x, pos.y, 10, ['#b9ffd6', '#ffffff'], { speed: 200, size: 5, life: 0.4, gravity: 0 });
+      this.gf.pout = 1.3;
+      this.dodgeStreak++;
+      const streak = this.dodgeStreak;
+      FF.Audio.play('dodge', streak);
+      const bonus = 5 * Math.min(streak, 5);
+      this.score += bonus;
+      // 打擊感：短暫慢動作、白光、衝擊波
+      this.slowmo = 0.22;
+      this.dodgeFlash = 1;
+      this.shake = Math.max(this.shake, 6);
+      this.shockwaves.push({ x: pos.x, y: pos.y, t: 0 });
+      this.float(pos.x, pos.y - 40, streak > 1 ? `完美閃避 x${streak}！+${bonus}` : `閃過！+${bonus}`, '#7dffb0', streak > 1 ? 32 : 34, 1.2);
+      this.burst(pos.x, pos.y, 18, ['#b9ffd6', '#ffffff', '#7dffb0'], { speed: 320, size: 6, life: 0.5, gravity: 0 });
+      this.burst(pos.x, pos.y, 3, ['#fff'], { speed: 160, size: 22, life: 0.6, gravity: -50, emoji: '✨' });
       this.stats.dodges++;
       this.anger += 3 * this.mods.angerMul;
       this.say(pick(FF.LINES.dodged), 2.0, true);
@@ -937,6 +960,7 @@ FF.Game = class Game {
     s.runs++;
     FF.Save.persist();
     const E = FF.ENDINGS[reason];
+    const G = FF.GRADES.find(g => secs >= g.minTime) || FF.GRADES[FF.GRADES.length - 1];
     this.result = {
       reason,
       title: E.title,
@@ -948,6 +972,9 @@ FF.Game = class Game {
       tickets: { ...parts, bonus, total, min: total === T.min && base + bonus < T.min },
       newRecord,
     };
+    const r = this.result;
+    r.grade = { grade: G.grade, title: G.title, stars: G.stars, color: G.color, comment: FF.util.pick(G[reason]) };
+    r.quips = FF.QUIPS.map(q => q(r)).filter(Boolean).slice(0, 2);
     if (reason !== 'quit') {
       FF.Audio.play('gameover');
       this.shake = 10;

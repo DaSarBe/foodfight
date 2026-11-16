@@ -76,7 +76,18 @@ FF.Audio = (() => {
     raw: () => tone(140, 0.3, { type: 'sawtooth', vol: 0.15, slide: -40 }),
     warn: () => { tone(1100, 0.07, { type: 'square', vol: 0.15 }); tone(1100, 0.07, { type: 'square', vol: 0.15, delay: 0.1 }); },
     hit: () => { noise(0.18, { vol: 0.6, freq: 400, q: 0.7, type: 'lowpass' }); tone(180, 0.15, { type: 'square', vol: 0.25, slide: -100 }); },
-    dodge: () => noise(0.22, { vol: 0.3, freq: 600, sweep: 3000, q: 2 }),
+    // 閃避：咻（風切）→ 她的筷子撲空「喀」→ 低音收尾 → 上揚的叮叮叮（連續閃避音調越來越高）
+    dodge: (streak = 1) => {
+      const up = Math.pow(2, Math.min(streak - 1, 7) / 12);
+      noise(0.2, { vol: 0.45, freq: 500, sweep: 4500, q: 1.5 });
+      noise(0.12, { vol: 0.25, freq: 6000, sweep: -3000, q: 3, delay: 0.03 });
+      noise(0.035, { vol: 0.5, freq: 3200, q: 4, delay: 0.09 });
+      tone(1900, 0.04, { type: 'square', vol: 0.12, delay: 0.09 });
+      tone(150, 0.16, { type: 'sine', vol: 0.4, slide: -90, delay: 0.02 });
+      [1047, 1319, 1568, 2093].forEach((f, i) =>
+        tone(f * up, 0.14, { type: 'triangle', vol: 0.2, delay: 0.12 + i * 0.045 }));
+      tone(2093 * up * 1.5, 0.3, { type: 'sine', vol: 0.1, delay: 0.3 });
+    },
     splash: () => noise(0.25, { vol: 0.2, freq: 900, sweep: -500, q: 0.8 }),
     gfEat: () => { tone(400, 0.06, { type: 'sine', vol: 0.15 }); tone(480, 0.06, { type: 'sine', vol: 0.15, delay: 0.09 }); },
     angry: () => { tone(220, 0.12, { type: 'sawtooth', vol: 0.15 }); tone(200, 0.16, { type: 'sawtooth', vol: 0.15, delay: 0.12 }); },
@@ -91,8 +102,8 @@ FF.Audio = (() => {
   return {
     unlock,
     setMuted,
-    play(name) {
-      try { sfx[name] && sfx[name](); } catch (e) { /* 忽略音效錯誤 */ }
+    play(name, arg) {
+      try { sfx[name] && sfx[name](arg); } catch (e) { /* 忽略音效錯誤 */ }
     },
   };
 })();

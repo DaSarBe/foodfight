@@ -120,8 +120,16 @@ FF.UI = (() => {
 
   function showResult(r) {
     $('res-title').textContent = r.title;
-    $('res-line').textContent = r.line;
-    $('res-record').classList.toggle('hidden', !r.newRecord);
+    const g = r.grade;
+    $('res-grade').innerHTML = `
+      <div class="grade-badge" style="--gc:${g.color}">${g.grade}</div>
+      <div class="grade-info">
+        <div class="grade-label">她給你的男友評價</div>
+        <div class="grade-title">${g.title}</div>
+        <div class="grade-stars">${'★'.repeat(g.stars)}<span>${'★'.repeat(5 - g.stars)}</span></div>
+      </div>`;
+    $('res-say').innerHTML = `<span class="gf-face">${r.reason === 'anger' ? '😤' : r.reason === 'hunger' ? '😋' : '🙄'}</span><p>「${g.comment}」</p>`;
+    $('res-quips').innerHTML = r.quips.map(q => `<li>${q}</li>`).join('');
     const st = r.stats;
     $('res-stats').innerHTML = `
       <div><span>🏅 分數</span><b>${r.score}</b></div>

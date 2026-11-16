@@ -274,6 +274,7 @@ FF.Render = (() => {
     if (game.over && game.result && game.result.reason === 'anger') return 'furious';
     const a = game.anger;
     if (a >= 75) return 'furious';
+    if (game.gf.pout > 0) return 'annoyed';
     if (a >= 50) return 'annoyed';
     if (a >= 25) return 'normal';
     return 'happy';
@@ -784,6 +785,16 @@ FF.Render = (() => {
       ctx.globalAlpha = 1;
     }
 
+    for (const w of game.shockwaves) {
+      const k = w.t / 0.35;
+      ctx.globalAlpha = 1 - k;
+      ctx.strokeStyle = '#b9ffd6';
+      ctx.lineWidth = 8 * (1 - k) + 1;
+      ctx.beginPath();
+      ctx.arc(w.x, w.y, 20 + k * 110, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.globalAlpha = 1;
+    }
     drawStrikeWarning(ctx, game, time);
     drawParticles(ctx, game);
     drawFloaters(ctx, game);
@@ -798,6 +809,10 @@ FF.Render = (() => {
       v.addColorStop(0, 'rgba(255,0,0,0)');
       v.addColorStop(1, `rgba(255,0,0,${0.45 * game.flash})`);
       ctx.fillStyle = v;
+      ctx.fillRect(0, 0, C.W, C.H);
+    }
+    if (game.dodgeFlash > 0) {
+      ctx.fillStyle = `rgba(220,255,235,${0.35 * game.dodgeFlash})`;
       ctx.fillRect(0, 0, C.W, C.H);
     }
     if (game.over) {
