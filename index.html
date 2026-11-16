@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#7a3b12">
+  <title>搶火鍋大作戰</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div id="game">
+    <canvas id="cv"></canvas>
+
+    <section id="menu" class="screen">
+      <div class="panel menu-panel">
+        <div class="logo">🍲</div>
+        <h1>搶火鍋大作戰</h1>
+        <p class="tagline">跟女朋友的火鍋攻防戰</p>
+        <div class="tickets-line">🎫 飯票 <b id="menu-tickets">0</b></div>
+        <button class="btn primary" id="btn-start">開動！</button>
+        <button class="btn" id="btn-shop">🛒 商店</button>
+        <button class="btn" id="btn-howto">📖 玩法說明</button>
+        <div class="best" id="menu-best"></div>
+        <button class="icon-btn" id="btn-mute" aria-label="靜音">🔊</button>
+      </div>
+    </section>
+
+    <section id="howto" class="screen hidden">
+      <div class="panel scroll">
+        <h2>📖 玩法說明</h2>
+        <ul class="rules">
+          <li><span class="big">👆</span>點鍋裡的食物，伸筷子去夾。</li>
+          <li><span class="big">🟢</span>食物外圈：<b class="c-raw">藍色＝生的</b>、<b class="c-ok">綠色＝剛好</b>、<b class="c-over">咖啡色＝煮太老</b>。剛好的分數最高，生的吃了會肚子痛！</li>
+          <li><span class="big">💗</span>粉紅虛線圈是她正在瞄準的食物，先夾到先贏。</li>
+          <li><span class="big">❗</span>你夾著食物回碗的路上，她可能會用筷子打掉！看到 ❗ 時<b>點一下畫面</b>閃開。太早亂點會手抖喔。</li>
+          <li><span class="big">😤</span>搶她的食物、搶她指定的食物，她的怒氣會飆高；讓她吃到東西會消氣。</li>
+          <li><span class="big">🍚</span>你的飽足感會一直下降，要記得吃。</li>
+          <li><span class="big">💀</span>怒氣滿了，或你餓到飽足感歸零，遊戲結束。在「搶」與「讓」之間取捨吧！</li>
+          <li><span class="big">🎫</span>每局結束都能拿到飯票，去商店升級能力、買道具。</li>
+          <li><span class="big">⌨️</span>電腦：空白鍵閃避、1～4 使用道具、Esc 暫停。</li>
+        </ul>
+        <button class="btn primary" id="btn-howto-ok">知道了！</button>
+      </div>
+    </section>
+
+    <section id="shop" class="screen hidden">
+      <div class="panel shop-panel">
+        <div class="shop-head">
+          <button class="btn small" id="btn-shop-back">← 返回</button>
+          <h2>🛒 商店</h2>
+          <div class="tickets-pill">🎫 <b id="shop-tickets">0</b></div>
+        </div>
+        <div class="shop-body scroll">
+          <h3>永久能力</h3>
+          <div id="shop-upgrades"></div>
+          <h3>道具 <small>（遊戲中點下方按鈕使用）</small></h3>
+          <div id="shop-items"></div>
+        </div>
+        <button class="btn primary" id="btn-shop-start">開動！</button>
+      </div>
+    </section>
+
+    <section id="pause" class="screen hidden">
+      <div class="panel">
+        <h2>⏸ 暫停中</h2>
+        <button class="btn primary" id="btn-resume">繼續吃</button>
+        <button class="btn" id="btn-pause-howto">📖 玩法說明</button>
+        <button class="btn" id="btn-pause-mute">🔊 音效：開</button>
+        <button class="btn danger" id="btn-quit">結帳走人（結束這局）</button>
+      </div>
+    </section>
+
+    <section id="result" class="screen hidden">
+      <div class="panel scroll">
+        <h2 id="res-title">她生氣了…</h2>
+        <p class="res-line" id="res-line"></p>
+        <div class="record hidden" id="res-record">🏆 新紀錄！</div>
+        <div class="res-stats" id="res-stats"></div>
+        <div class="res-tickets" id="res-tickets"></div>
+        <button class="btn primary" id="btn-again">再來一局</button>
+        <button class="btn" id="btn-res-shop">🛒 去商店</button>
+        <button class="btn" id="btn-res-menu">主選單</button>
+      </div>
+    </section>
+
+    <div id="toast" class="toast hidden"></div>
+  </div>
+
+  <script src="js/config.js"></script>
+  <script src="js/save.js"></script>
+  <script src="js/audio.js"></script>
+  <script src="js/game.js"></script>
+  <script src="js/render.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>
