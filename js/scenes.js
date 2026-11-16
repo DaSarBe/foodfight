@@ -43,7 +43,7 @@ FF.Scenes = (() => {
     ctx.font = `bold ${size}px ${TEXT_FONT}`;
     const lines = [];
     let cur = '';
-    for (const ch of str) {
+    for (const ch of FF.G.units(str)) {
       if (ctx.measureText(cur + ch).width > maxW) {
         lines.push(cur);
         cur = ch;

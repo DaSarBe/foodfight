@@ -117,14 +117,14 @@ FF.Progress = (() => {
   // 一局換算成終身統計的增量（r 為結算結果；遊戲中即時檢查時為 null）
   function runDelta(game, r) {
     const st = game.stats;
-    const normal = !game.challenge;
+    const normal = !game.challenge && !game.comp;
     const sum = {
       runs: r ? 1 : 0,
       playTime: Math.floor(game.t),
       angerEnds: r && r.reason === 'anger' ? 1 : 0,
       hungerEnds: r && r.reason === 'hunger' ? 1 : 0,
       ticketsEarned: r ? r.tickets.total : 0,
-      challengeRuns: r && !normal ? 1 : 0,
+      challengeRuns: r && game.challenge ? 1 : 0,
     };
     ['eaten', 'perfect', 'raw', 'dodges', 'knocked', 'gfAte', 'steals', 'fed', 'fedFav', 'fedRaw', 'rareEaten', 'saves',
       'crashFails', 'pitchesBought', 'badBuys', 'goodDeals', 'declines', 'ults', 'ultCleared'].forEach(k => (sum[k] = st[k] || 0));

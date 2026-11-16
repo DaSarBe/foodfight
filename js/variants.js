@@ -17,8 +17,10 @@ Object.assign(FF.Game.prototype, {
     this.rules = Object.assign({ think: 1, reach: 1, strike: 1, decayMul: 1, satMul: 1 }, ch ? ch.rules : {});
     if (this.rules.noDecay) this.rules.decayMul = 0;
     // 挑戰模式固定設定；一般模式用玩家的選擇（未解鎖就退回預設）
-    const gfId = ch ? (setup.gf || 'default') : (save.unlockedGf || []).includes(save.gfType) ? save.gfType : 'default';
-    const brothId = ch ? (setup.broth || 'classic') : (save.unlockedBroth || []).includes(save.broth) ? save.broth : 'classic';
+    const comp = this.comp;
+    // 競技模式：配置由戰帖／日期決定，沒解鎖也能玩（只限這局）
+    const gfId = comp ? comp.persona : ch ? (setup.gf || 'default') : (save.unlockedGf || []).includes(save.gfType) ? save.gfType : 'default';
+    const brothId = comp ? comp.broth : ch ? (setup.broth || 'classic') : (save.unlockedBroth || []).includes(save.broth) ? save.broth : 'classic';
     this.persona = FF.personaById(gfId);
     this.broth = FF.brothById(brothId);
     if (ch && setup.venue) this.venue = FF.VENUES.find(v => v.id === setup.venue) || this.venue;
@@ -48,7 +50,7 @@ Object.assign(FF.Game.prototype, {
   line(key) {
     const own = this.persona && this.persona.lines[key];
     const base = FF.LINES[key] || [''];
-    if (own && own.length && (Math.random() < 0.75 || !base.length)) return FF.util.pick(own);
+    if (own && own.length && (FF.util.R() < 0.75 || !base.length)) return FF.util.pick(own);
     return FF.util.pick(base);
   },
 

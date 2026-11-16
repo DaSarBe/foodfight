@@ -5,6 +5,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
   <meta name="theme-color" content="#7a3b12">
   <title>搶火鍋大作戰</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" type="image/png" href="icons/icon-192.png">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="搶火鍋">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
@@ -12,7 +19,7 @@
     <canvas id="cv"></canvas>
 
     <section id="menu" class="screen">
-      <div class="panel menu-panel">
+      <div class="panel menu-panel scroll">
         <button class="icon-btn" id="btn-settings" aria-label="設定">⚙️</button>
         <div class="logo">🍲</div>
         <h1>搶火鍋大作戰</h1>
@@ -21,20 +28,33 @@
           <span class="title-chip" id="menu-title">🏷️ 火鍋菜鳥</span>
           <span class="tickets-line">🎫 <b id="menu-tickets">0</b></span>
         </div>
-        <button class="setup-card" id="btn-setup" aria-label="更換場地、她的模式、鍋底">
+        <button class="setup-card" id="btn-setup" aria-label="更換對象、場地、她的模式、鍋底">
+          <span class="chip" id="menu-partner" data-notr>👧 女朋友</span>
           <span class="chip" id="menu-venue">🏙️ 都市街邊火鍋</span>
           <span class="chip" id="menu-gf">😊 日常模式</span>
           <span class="chip" id="menu-broth">🍲 原味</span>
           <span class="setup-edit">更換 ›</span>
         </button>
         <button class="btn primary" id="btn-start">開動！</button>
+        <button class="daily-card" id="btn-daily">
+          <span class="dc-head"><b>🗓️ 每日同題</b><small id="dc-date"></small></span>
+          <span class="dc-cfg" id="dc-cfg"></span>
+          <span class="dc-stat" id="dc-stat"></span>
+          <i class="dot hidden" id="dot-daily"></i>
+        </button>
         <div class="menu-grid">
           <button class="btn tile" id="btn-missions">🎯 每日任務<small id="menu-missions">0/3</small><i class="dot hidden" id="dot-missions"></i></button>
-          <button class="btn tile" id="btn-challenge">💝 紀念日挑戰<small id="menu-challenge">0/5</small><i class="dot hidden" id="dot-challenge"></i></button>
+          <button class="btn tile" id="btn-challenge">💝 紀念日<small id="menu-challenge">0/5</small><i class="dot hidden" id="dot-challenge"></i></button>
           <button class="btn tile" id="btn-achieve">🏆 成就<small id="menu-achieve">0/0</small></button>
           <button class="btn tile" id="btn-shop">🛒 商店<small>升級・道具</small></button>
+          <button class="btn tile" id="btn-rank">🥇 排行榜<small id="menu-rank">尚未開放</small></button>
+          <button class="btn tile" id="btn-account">☁️ 雲端存檔<small id="menu-account">尚未開放</small><i class="dot hidden" id="dot-account"></i></button>
         </div>
-        <button class="btn small ghost" id="btn-howto">📖 玩法說明</button>
+        <div class="menu-foot">
+          <button class="btn small ghost" id="btn-howto">📖 玩法說明</button>
+          <button class="btn small ghost" id="btn-duel-input">⚔️ 貼上戰帖</button>
+          <button class="btn small ghost hidden" id="btn-install">📲 加到主畫面</button>
+        </div>
         <div class="best" id="menu-best"></div>
       </div>
     </section>
@@ -47,6 +67,7 @@
           <div class="tickets-pill">🎫 <b id="setup-tickets">0</b></div>
         </div>
         <div class="tabs" role="tablist">
+          <button class="tab" data-tab="who">👫 對象</button>
           <button class="tab" data-tab="gf">💕 她的模式</button>
           <button class="tab" data-tab="broth">🍲 鍋底</button>
           <button class="tab" data-tab="venue">📍 場地</button>
@@ -58,12 +79,28 @@
     </section>
 
     <section id="settings" class="screen hidden">
-      <div class="panel">
+      <div class="panel scroll">
         <h2>⚙️ 設定</h2>
         <div class="toggles">
           <button class="toggle" id="set-sfx"><span>🔊 音效</span><b>開</b></button>
           <button class="toggle" id="set-music"><span>🎵 背景音樂</span><b>開</b></button>
           <button class="toggle" id="set-vibrate"><span>📳 震動</span><b>開</b></button>
+        </div>
+        <div class="set-block">
+          <h3>👫 對象與你自己</h3>
+          <div id="set-gender"></div>
+        </div>
+        <div class="set-block">
+          <h3>🏷️ 暱稱（排行榜、戰帖會用）</h3>
+          <div class="set-nick">
+            <input id="set-nick" type="text" maxlength="10" placeholder="例如：夾肉師傅" autocomplete="off" data-notr>
+            <button class="btn small" id="btn-nick-save">儲存</button>
+          </div>
+          <p class="venue-tip" id="set-nick-msg" data-notr></p>
+        </div>
+        <div class="set-links">
+          <button class="btn small hidden" id="btn-set-install">📲 加到主畫面</button>
+          <button class="btn small hidden" id="btn-set-fs">⛶ 全螢幕</button>
         </div>
         <p class="venue-tip">設定會自動存檔。震動在不支援的裝置（例如 iPhone Safari）上會自動略過。</p>
         <button class="btn primary" id="btn-settings-ok">好了</button>
@@ -104,6 +141,57 @@
         </div>
         <p class="venue-tip">特殊規則的關卡，過關才會解鎖下一關。首次過關有大量飯票！挑戰中的場地、鍋底、她的模式是固定的，也不能用道具。</p>
         <div class="shop-body scroll" id="challenge-list"></div>
+      </div>
+    </section>
+
+    <section id="daily" class="screen hidden">
+      <div class="panel shop-panel">
+        <div class="shop-head">
+          <button class="btn small" id="btn-daily-back">← 返回</button>
+          <h2>🗓️ 每日同題</h2>
+          <div class="tickets-pill">🔥 <b id="daily-streak">0</b> 天</div>
+        </div>
+        <div class="shop-body scroll" id="daily-body"></div>
+      </div>
+    </section>
+
+    <section id="rank" class="screen hidden">
+      <div class="panel shop-panel">
+        <div class="shop-head">
+          <button class="btn small" id="btn-rank-back">← 返回</button>
+          <h2>🥇 排行榜</h2>
+          <button class="btn small" id="btn-rank-nick" data-notr>✏️ 暱稱</button>
+        </div>
+        <div class="tabs" role="tablist">
+          <button class="tab on" data-rk="daily">今日同題</button>
+          <button class="tab" data-rk="weekly">本週累計</button>
+        </div>
+        <p class="venue-tip" id="rank-tip"></p>
+        <div class="shop-body scroll" id="rank-list"></div>
+        <div class="rank-me" id="rank-me"></div>
+        <div class="btn-row two">
+          <button class="btn small" id="btn-rank-submit">⬆️ 上傳今日成績</button>
+          <button class="btn small" id="btn-rank-refresh">🔄 重新整理</button>
+        </div>
+      </div>
+    </section>
+
+    <section id="account" class="screen hidden">
+      <div class="panel shop-panel">
+        <div class="shop-head">
+          <button class="btn small" id="btn-account-back">← 返回</button>
+          <h2>☁️ 雲端存檔</h2>
+          <span></span>
+        </div>
+        <div class="shop-body scroll" id="account-body"></div>
+      </div>
+    </section>
+
+    <section id="dialog" class="screen hidden">
+      <div class="panel dialog-panel scroll">
+        <h2 id="dlg-title"></h2>
+        <div class="dlg-body" id="dlg-body"></div>
+        <div class="dlg-btns" id="dlg-btns"></div>
       </div>
     </section>
 
@@ -171,6 +259,7 @@
     <section id="result" class="screen hidden">
       <div class="panel scroll">
         <h2 id="res-title">她生氣了…</h2>
+        <div class="comp-box hidden" id="res-comp"></div>
         <div class="grade-card" id="res-grade"></div>
         <div class="gf-say" id="res-say"></div>
         <ul class="quips" id="res-quips"></ul>
@@ -178,7 +267,9 @@
         <div class="unlock hidden" id="res-unlock"></div>
         <div class="res-progress hidden" id="res-progress"></div>
         <div class="res-tickets" id="res-tickets"></div>
+        <div class="pwa-card hidden" id="res-pwa"></div>
         <button class="btn primary" id="btn-again">再來一局</button>
+        <button class="btn hidden" id="btn-duel-send">⚔️ 下戰帖</button>
         <div class="btn-row">
           <button class="btn" id="btn-share">📸 分享成績</button>
           <button class="btn" id="btn-res-shop">🛒 商店</button>
@@ -203,6 +294,8 @@
   <script src="js/venues.js"></script>
   <script src="js/content.js"></script>
   <script src="js/save.js"></script>
+  <script src="js/gender.js"></script>
+  <script src="js/rng.js"></script>
   <script src="js/audio.js"></script>
   <script src="js/music.js"></script>
   <script src="js/haptics.js"></script>
@@ -212,11 +305,19 @@
   <script src="js/progress.js"></script>
   <script src="js/events.js"></script>
   <script src="js/specials.js"></script>
+  <script src="js/compete.js"></script>
+  <script src="js/duel.js"></script>
+  <script src="js/daily.js"></script>
   <script src="js/render.js"></script>
   <script src="js/scenes.js"></script>
   <script src="js/share.js"></script>
+  <script src="js/firebase-config.js"></script>
+  <script src="js/cloud.js"></script>
+  <script src="js/cloud-firebase.js"></script>
+  <script src="js/pwa.js"></script>
   <script src="js/ui-panels.js"></script>
   <script src="js/ui.js"></script>
+  <script src="js/ui-extra.js"></script>
   <script src="js/main.js"></script>
 </body>
 </html>

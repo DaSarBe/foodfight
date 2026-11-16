@@ -3,7 +3,7 @@ window.FF = window.FF || {};
 
 FF.UI = (() => {
   const $ = id => document.getElementById(id);
-  const screens = ['menu', 'setup', 'settings', 'missions', 'achieve', 'challenges', 'howto', 'shop', 'pause', 'result', 'sharebox'];
+  const screens = ['menu', 'setup', 'settings', 'missions', 'achieve', 'challenges', 'howto', 'shop', 'pause', 'result', 'sharebox', 'daily', 'rank', 'account', 'dialog'];
   let current = 'menu';
   let howtoReturn = 'menu';
   let settingsReturn = 'menu';
@@ -23,6 +23,7 @@ FF.UI = (() => {
     if (name === 'achieve') FF.UIPanels.renderAchieve();
     if (name === 'challenges') FF.UIPanels.renderChallenges();
     if (name === 'settings' || name === 'pause') updateToggles();
+    FF.UIX.onShow(name);
     // 背景音樂：遊戲中（含暫停）放遊戲段落，其他畫面放選單段落
     if (name === null) {
       FF.Music.setScene('game');
@@ -252,6 +253,7 @@ FF.UI = (() => {
       ${t.bonus ? `<div><span>飯票加成</span><span>+${t.bonus}</span></div>` : ''}
       ${t.venueBonus ? `<div><span>場地加成（${t.venueName}）</span><span>+${t.venueBonus}</span></div>` : ''}
       ${t.gfBonus ? `<div><span>她的模式加成（${t.gfName}）</span><span>+${t.gfBonus}</span></div>` : ''}
+      ${t.compAdj ? `<div class="sub"><span>⚔️ 競技模式飯票打折（上限 ${FF.COMPETE.ticketCap}）</span><span>${t.compAdj}</span></div>` : ''}
       ${t.challenge ? `<div><span>🎉 首次過關獎勵</span><span>+${t.challenge}</span></div>` : ''}
       ${t.min ? '<div><span>安慰獎（保底）</span><span>✔</span></div>' : ''}
       <div class="total"><span>🎫 獲得飯票</span><span>+${t.total}</span></div>
@@ -270,6 +272,10 @@ FF.UI = (() => {
       again.dataset.challenge = '';
     }
     $('btn-res-shop').textContent = ch ? '💝 關卡' : '🛒 商店';
+    again.dataset.comp = '';
+    FF.UIX.decorateResult(r);
+    if (ch) $('btn-duel-send').classList.add('hidden');
+    FF.UIX.renderPwaCard();
     show('result');
     $('result').querySelector('.panel').scrollTop = 0;
   }
@@ -357,6 +363,9 @@ FF.UI = (() => {
     click('btn-quit', () => app.quit());
     click('btn-again', e => {
       const id = e.currentTarget.dataset.challenge;
+      const comp = e.currentTarget.dataset.comp;
+      if (comp === 'daily') return app.requestStart({ compete: FF.Daily.compOpts() });
+      if (comp === 'duel' && FF.UIX.lastComp) return app.requestStart({ compete: { ...FF.UIX.lastComp } });
       app.requestStart(id ? { challenge: id } : {});
     });
     click('btn-res-shop', () => show(lastResult && lastResult.challenge ? 'challenges' : 'shop'));
@@ -365,6 +374,7 @@ FF.UI = (() => {
     click('btn-share-go', () => doShare());
     click('btn-share-back', () => show('result'));
     FF.UIPanels.init({ $, toast, show, keepScroll, app });
+    FF.UIX.init({ toast, show, app });
   }
 
   return {

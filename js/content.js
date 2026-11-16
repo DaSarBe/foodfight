@@ -8,7 +8,7 @@ window.FF = window.FF || {};
 //   angerGain 怒氣上升、decay 怒氣自然消退、calm 她自己吃到東西消的氣、chew 嚼的時間
 //   feed 餵她消的氣、cute 撒嬌消的氣、ult 大絕招發動機率、ultCd 大絕招冷卻、sat 你肚子餓的速度
 // ultAngerMin 怒氣多少以上會放大招；sweepBias 放大招時選「全鍋掃蕩」的機率（其餘是筷子連打）
-// look 外觀：hair 髮色、style 髮型（long 長髮 / buns 丸子頭 / twin 雙馬尾 / short 短髮綁馬尾）、shirt 衣服、acc 配件
+// look 外觀（女友版）、lookM（男友版，畫風一致）：hair 髮色、style 髮型（long 長髮 / buns 丸子頭 / twin 雙馬尾 / short 短髮綁馬尾）、shirt 衣服、acc 配件
 // unlock：price 飯票價格；cond 條件（達成就免費解鎖），stat 對應終身統計
 // ticketBonus：一般模式結算飯票加成（比較難搞的模式給多一點）
 FF.PERSONAS = [
@@ -18,6 +18,7 @@ FF.PERSONAS = [
     tip: '最平衡，第一次玩選這個',
     mul: {},
     look: { hair: '#4a2c22', style: 'long', shirt: '#ff8fb1', acc: 'clip', accColor: '#ff6fa5' },
+    lookM: { hair: '#2a2a33', style: 'crew', shirt: '#6fb3e8', acc: 'none', accColor: '#ffffff', male: true },
     lines: {},
   },
   {
@@ -28,6 +29,7 @@ FF.PERSONAS = [
     mul: { think: 0.5, reach: 1.45, strike: 0.7, angerGain: 0.95, decay: 1, calm: 0.3, chew: 0.6, ult: 0.7, feed: 0.85, sat: 1.5 },
     ultAngerMin: 85, sweepBias: 0.9,
     look: { hair: '#7a4426', style: 'buns', shirt: '#ffc94a', acc: 'bib', accColor: '#ffffff' },
+    lookM: { hair: '#5a3a22', style: 'buzz', shirt: '#ffc94a', acc: 'bib', accColor: '#ffffff', male: true },
     lines: {
       start: ['我今天中午沒吃，全部都是我的', '先說好，我今天是來吃到飽的', '老闆！肉先上三盤！'],
       steal: ['那塊我盯很久了欸！', '你搶我的食物＝搶我的命', '我的胃在哭你知道嗎'],
@@ -48,6 +50,7 @@ FF.PERSONAS = [
     ticketBonus: 0.15,
     mul: { angerGain: 1.25, decay: 0.9, calm: 0.85, feed: 2, cute: 2, strike: 1.05, ult: 1.1 },
     look: { hair: '#c98a3a', style: 'twin', shirt: '#b89cff', acc: 'ribbon', accColor: '#e8414f' },
+    lookM: { hair: '#c98a3a', style: 'spiky', shirt: '#b89cff', acc: 'scarf', accColor: '#e8414f', male: true },
     lines: {
       start: ['我、我才不是想跟你吃火鍋咧', '哼，今天就勉強陪你吃', '不准搶喔…我是說，隨便你啦'],
       steal: ['你、你很過分欸！', '哼！我才不在乎那塊咧！…還我！', '笨蛋！那是我的！'],
@@ -71,6 +74,7 @@ FF.PERSONAS = [
     mul: { think: 1.3, reach: 0.8, strike: 1.45, fake: 1.3, ult: 2.6, ultCd: 0.55 },
     ultAngerMin: 62, sweepBias: 0.2,
     look: { hair: '#1f1a1a', style: 'short', shirt: '#e8414f', acc: 'headband', accColor: '#ffffff' },
+    lookM: { hair: '#1f1a1a', style: 'crop', shirt: '#e8414f', acc: 'headband', accColor: '#ffffff', male: true },
     lines: {
       start: ['今天的火鍋，是一場修行', '筷子拿好，我不會手下留情', '先熱身一下…喝！'],
       strike: ['喝！！', '看招！', '筷子道，一本！', '太慢了！'],

@@ -32,6 +32,7 @@ FF.UIPanels = (() => {
 
   // ---------- 開局準備 ----------
   const TIPS = {
+    who: '你的對象是女朋友還是男朋友？你自己又是誰？選好之後，所有台詞、外觀和稱呼都會跟著換。',
     gf: '她今天是哪種模式？每種打法都不一樣，選一個最拿手的！',
     broth: '鍋底會改變食物熟的速度和分數。新手推薦牛奶鍋！',
     venue: '撐到越後面的波數，就能解鎖新場地。越難搞的場地，飯票加成越高！',
@@ -46,7 +47,8 @@ FF.UIPanels = (() => {
     $('setup-tip').textContent = TIPS[setupTab];
     const list = $('setup-list');
     list.innerHTML = '';
-    if (setupTab === 'gf') FF.PERSONAS.forEach(p => list.appendChild(personaRow(p)));
+    if (setupTab === 'who') FF.UIX.renderWho(list);
+    else if (setupTab === 'gf') FF.PERSONAS.forEach(p => list.appendChild(personaRow(p)));
     else if (setupTab === 'broth') FF.BROTHS.forEach(b => list.appendChild(brothRow(b)));
     else FF.VENUES.forEach(v => list.appendChild(venueRow(v)));
   }

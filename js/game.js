@@ -7,8 +7,14 @@ FF.LAYOUT = {
 };
 
 FF.util = {
-  rand: (a, b) => a + Math.random() * (b - a),
-  pick: arr => arr[Math.floor(Math.random() * arr.length)],
+  // 影響遊戲內容的亂數一律走 R（每局用種子重建，同種子＋同操作＝同一局）；
+  // 純視覺（粒子、氣泡、抖動）用 vrand / vpick / Math.random，不可以動到 R
+  R: Math.random,
+  rnd: () => FF.util.R(),
+  rand: (a, b) => a + FF.util.R() * (b - a),
+  pick: arr => arr[Math.floor(FF.util.R() * arr.length)],
+  vrand: (a, b) => a + Math.random() * (b - a),
+  vpick: arr => arr[Math.floor(Math.random() * arr.length)],
   dist: (a, b) => Math.hypot(a.x - b.x, a.y - b.y),
   clamp: (v, a, b) => Math.max(a, Math.min(b, v)),
   lerp: (a, b, t) => a + (b - a) * t,
@@ -21,7 +27,13 @@ FF.Game = class Game {
     const { pick } = FF.util;
     this.save = save;
     this.hooks = hooks || {};
-    const up = save.upgrades;
+    // 帶種子的亂數：同種子＋同配置＋同操作＝同樣的一局（見 rng.js）
+    this.seed = opts.seed != null ? opts.seed >>> 0 : FF.Rng.randomSeed();
+    this.rng = FF.Rng.mulberry32(this.seed);
+    FF.util.R = this.rng;
+    // 競技模式（對決、每日同題）：統一能力、不能用道具、場地／模式／鍋底由戰帖或日期決定
+    this.comp = opts.compete || null;
+    const up = this.comp ? FF.COMPETE.upgrades() : save.upgrades;
     this.mods = {
       speed: 1 + 0.12 * up.speed,
       hit: C.baseHitRadius + 7 * up.reach,
@@ -54,7 +66,7 @@ FF.Game = class Game {
     this.banner = null;
     this.hintTimer = 6;
     this.favorite = pick(FF.FOODS);
-    this.venue = FF.VENUES.find(v => v.id === save.venue) || FF.VENUES[0];
+    this.venue = FF.VENUES.find(v => v.id === (this.comp ? this.comp.venue : save.venue)) || FF.VENUES[0];
     this.stats = { eaten: 0, perfect: 0, raw: 0, dodges: 0, knocked: 0, gfAte: 0, steals: 0, bestCombo: 0, rareEaten: 0 };
     this.strikesSeen = 0;
     this.firstStrikeDone = false;
@@ -87,7 +99,7 @@ FF.Game = class Game {
   randomFoodDef() {
     if (this.rules && this.rules.rareOnly) return FF.util.pick(FF.RARE_FOODS);
     const total = FF.FOODS.reduce((s, f) => s + f.weight, 0);
-    let r = Math.random() * total;
+    let r = FF.util.R() * total;
     for (const f of FF.FOODS) {
       r -= f.weight;
       if (r <= 0) return f;
@@ -97,8 +109,8 @@ FF.Game = class Game {
 
   randomPotPoint(margin = 45) {
     const P = FF.CONFIG.pot;
-    const a = Math.random() * Math.PI * 2;
-    const r = Math.sqrt(Math.random()) * (P.r - margin);
+    const a = FF.util.R() * Math.PI * 2;
+    const r = Math.sqrt(FF.util.R()) * (P.r - margin);
     return { x: P.x + Math.cos(a) * r, y: P.y + Math.sin(a) * r };
   }
 
@@ -142,7 +154,7 @@ FF.Game = class Game {
         life: life * (0.6 + Math.random() * 0.6),
         t: 0,
         size: size * (0.6 + Math.random() * 0.8),
-        color: FF.util.pick(colors),
+        color: FF.util.vpick(colors),
         gravity,
         emoji,
       });
@@ -182,7 +194,7 @@ FF.Game = class Game {
       vy: rand(-16, 16),
       t: opts.t || 0,
       state: 'pot',
-      phase: Math.random() * 6.28,
+      phase: FF.util.R() * 6.28,
       pop: 0.35,
       rot: rand(-0.3, 0.3),
       fly: null,
@@ -197,6 +209,7 @@ FF.Game = class Game {
 
   // ---------- 主更新 ----------
   update(dt) {
+    FF.util.R = this.rng; // 同時有好幾個 Game 實例（測試、模擬）時，確保用的是自己的亂數
     if (this.paused) return;
     if (this.slowmo > 0) {
       this.slowmo -= dt;
@@ -503,7 +516,7 @@ FF.Game = class Game {
     if (contested) chance += 0.15;
     if (p.carry.claimed) chance += 0.3;
     if (this.t < this.firstStrikeAt) chance = 0;
-    if (forced || Math.random() < chance) {
+    if (forced || FF.util.R() < chance) {
       const warn = (forced ? 0.85 : FF.DIFF.warnTime(this.wave)) + this.mods.gripWarn;
       p.carry.strike = { phase: 'pending', at: rand(0.12, 0.3), warn, timer: 0 };
       this.firstStrikeDone = true;
@@ -684,7 +697,7 @@ FF.Game = class Game {
       this.stats.raw++;
       this.float(B.x, B.y - 60, '生的！肚子痛 -5', '#8fd0ff', 26);
       FF.Audio.play('raw');
-      if (Math.random() < 0.6) this.say(this.line('raw'));
+      if (FF.util.R() < 0.6) this.say(this.line('raw'));
     } else if (st === 'perfect') {
       this.combo++;
       this.stats.perfect++;
@@ -748,7 +761,7 @@ FF.Game = class Game {
       if (d.rare) s += 6;
       if (this.claim && this.claim.id === f.id) s += 8;
       if (this.player.state === 'reach' && this.player.target === f) s += 1.5;
-      s += Math.random() * jitter;
+      s += FF.util.R() * jitter;
       if (s > bs) {
         bs = s;
         best = f;
@@ -782,7 +795,7 @@ FF.Game = class Game {
             g.target = f;
             g.state = 'reach';
             g.start = { x: g.tip.x, y: g.tip.y };
-            g.fake = Math.random() < this.D.fakeChance(w);
+            g.fake = FF.util.R() < this.D.fakeChance(w);
             g.faked = false;
           } else {
             g.timer = 0.4;
@@ -805,7 +818,7 @@ FF.Game = class Game {
             const alt = this.chooseTarget(f);
             if (alt) {
               g.target = alt;
-              if (Math.random() < 0.5) this.say(this.line('fake'), 1.6);
+              if (FF.util.R() < 0.5) this.say(this.line('fake'), 1.6);
             }
           }
         }
@@ -932,7 +945,7 @@ FF.Game = class Game {
     const G = FF.CONFIG.gf;
     this.burst(G.x + 40, G.y - 20, fav ? 5 : 2, ['#fff'], { speed: 80, size: 18, life: 0.9, gravity: -60, emoji: '💗' });
     if (fav) this.say(this.line('eatFav'), 2.2, true);
-    else if (Math.random() < 0.4) this.say(this.line('eat'), 1.8);
+    else if (FF.util.R() < 0.4) this.say(this.line('eat'), 1.8);
   }
 
   // ---------- 輸入 ----------
@@ -981,8 +994,8 @@ FF.Game = class Game {
     const item = FF.ITEMS.find(i => i.id === id);
     if (!item || this.itemCd > 0) return;
     const b = FF.LAYOUT.items.find(i => i.id === id);
-    if (this.challenge) {
-      this.float(270, b.y - 50, '紀念日挑戰不能用道具喔', '#ffb4b4', 20, 1.1);
+    if (this.challenge || this.comp) {
+      this.float(270, b.y - 50, this.comp ? '競技模式不能用道具喔' : '紀念日挑戰不能用道具喔', '#ffb4b4', 20, 1.1);
       FF.Audio.play('error');
       return;
     }
@@ -1043,14 +1056,22 @@ FF.Game = class Game {
     };
     const base = parts.time + parts.score + parts.wave;
     const bonus = Math.floor(base * (this.mods.ticketMul - 1));
-    const venueBonus = ch ? 0 : Math.floor(base * this.venue.bonus);
-    const gfBonus = ch ? 0 : Math.floor(base * (this.persona.ticketBonus || 0));
+    const comp = this.comp;
+    const venueBonus = ch || comp ? 0 : Math.floor(base * this.venue.bonus);
+    const gfBonus = ch || comp ? 0 : Math.floor(base * (this.persona.ticketBonus || 0));
     let total = Math.max(T.min, base + bonus + venueBonus + gfBonus);
+    // 競技模式（對決、每日同題）的飯票比一般局少，避免變成刷飯票捷徑（見 compete.js）
+    let compAdj = 0;
+    if (comp) {
+      const after = FF.COMPETE.tickets(total, comp);
+      compAdj = after - total;
+      total = after;
+    }
     const s = this.save;
     const best = s.best;
     let newRecord = false;
     let unlocked = [];
-    if (!ch) {
+    if (!ch && !comp) {
       // 挑戰模式的難度跟一般模式不同，不算進最高紀錄與場地解鎖
       newRecord = this.score > best.score;
       const prevWave = best.wave;
@@ -1062,12 +1083,13 @@ FF.Game = class Game {
     s.runs++;
     this.result = {
       reason,
-      mode: ch ? 'challenge' : 'normal',
+      mode: ch ? 'challenge' : comp ? comp.kind : 'normal',
+      seed: this.seed,
       score: this.score,
       time: secs,
       wave: this.wave,
       stats: { ...this.stats },
-      tickets: { ...parts, bonus, venueBonus, venueName: this.venue.name, gfBonus, gfName: this.persona.name, challenge: 0, min: total === T.min && base + bonus + venueBonus + gfBonus < T.min },
+      tickets: { ...parts, bonus, venueBonus, venueName: this.venue.name, gfBonus, gfName: this.persona.name, compAdj, challenge: 0, min: total === T.min && base + bonus + venueBonus + gfBonus < T.min },
       unlocked,
       venue: this.venue,
       persona: this.persona,
@@ -1086,6 +1108,7 @@ FF.Game = class Game {
       r.grade = { grade: G.grade, title: G.title, stars: G.stars, color: G.color, comment: FF.util.pick(G[reason]) };
       r.quips = FF.QUIPS.map(q => q(r)).filter(Boolean).slice(0, 2);
     }
+    if (comp) this.finishCompete(r); // 勝負、每日成績、戰帖文案（compete.js）
     r.tickets.total = total;
     s.tickets += total;
     r.progress = FF.Progress.commitRun(this, r); // 終身統計、每日任務、成就（progress.js）

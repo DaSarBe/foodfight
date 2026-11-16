@@ -30,8 +30,22 @@ FF.Save = (() => {
       title: '',
       daily: { date: '', list: [], bonus: false },
       challenges: { cleared: [], plays: 0 },
+      // ---- v3 新增：對象與自己的性別、暱稱、每日同題、雲端、加到主畫面 ----
+      partner: 'f',       // 'f' 女朋友（預設）、'm' 男朋友
+      me: 'auto',         // 'auto'＝跟對象相反，或 'm'／'f' 自己指定（不預設異性戀，同性伴侶也能選）
+      nick: '',
+      dc: dcDefaults(),
+      cloud: { used: false, auto: true, base: 0, lastSync: 0 },
+      pwa: { later: 0, laterRuns: 0, never: false, installed: false, asked: 0, seenIos: false },
+      updatedAt: 0,
     };
   }
+
+  // 每日同題：rec 以日期（台灣時間）為鍵，只留最近 30 天；streak 連續參加天數；practice 今天練習了幾局
+  function dcDefaults() {
+    return { rec: {}, streak: { n: 0, last: '' }, practice: { date: '', n: 0 }, best: 0, played: 0 };
+  }
+  const DKEY = /^\d{4}-\d{2}-\d{2}$/;
 
   // 終身統計：SUM 累加、MAX 取最大、SETS 收集不重複的 id
   const LIFE_SUM = ['runs', 'eaten', 'perfect', 'raw', 'dodges', 'knocked', 'gfAte', 'steals', 'fed', 'fedFav', 'fedRaw',
@@ -107,10 +121,49 @@ FF.Save = (() => {
       d.challenges.cleared = ids(raw.challenges.cleared, id => FF.CHALLENGES.some(c => c.id === id));
       d.challenges.plays = num(raw.challenges.plays, 0);
     }
+    // ---- v3 新欄位（舊存檔沒有就用預設）----
+    d.partner = raw.partner === 'm' ? 'm' : 'f';
+    d.me = raw.me === 'm' || raw.me === 'f' ? raw.me : 'auto';
+    d.nick = typeof raw.nick === 'string' ? raw.nick.replace(/[\u0000-\u001f\u007f<>&"]/g, '').trim().slice(0, 10) : '';
+    const dc = raw.dc;
+    if (dc && typeof dc === 'object') {
+      if (dc.rec && typeof dc.rec === 'object') {
+        Object.keys(dc.rec).filter(k => DKEY.test(k)).sort().slice(-30).forEach(k => {
+          const r = dc.rec[k];
+          if (!r || typeof r !== 'object') return;
+          d.dc.rec[k] = {
+            score: num(r.score, 0, 0, 1e7), time: num(r.time, 0, 0, 86400), wave: num(r.wave, 1, 1, 999),
+            reason: typeof r.reason === 'string' ? r.reason.slice(0, 12) : '', sub: !!r.sub,
+          };
+        });
+      }
+      if (dc.streak && typeof dc.streak === 'object') {
+        d.dc.streak = { n: num(dc.streak.n, 0, 0, 100000), last: DKEY.test(dc.streak.last) ? dc.streak.last : '' };
+      }
+      if (dc.practice && typeof dc.practice === 'object') {
+        d.dc.practice = { date: DKEY.test(dc.practice.date) ? dc.practice.date : '', n: num(dc.practice.n, 0, 0, 9999) };
+      }
+      d.dc.best = num(dc.best, 0, 0, 1e7);
+      d.dc.played = num(dc.played, 0, 0, 100000);
+    }
+    if (raw.cloud && typeof raw.cloud === 'object') {
+      d.cloud = {
+        used: !!raw.cloud.used, auto: raw.cloud.auto === undefined ? true : !!raw.cloud.auto,
+        base: num(raw.cloud.base, 0, 0, 1e15), lastSync: num(raw.cloud.lastSync, 0, 0, 1e15),
+      };
+    }
+    if (raw.pwa && typeof raw.pwa === 'object') {
+      d.pwa = {
+        later: num(raw.pwa.later, 0, 0, 1e15), laterRuns: num(raw.pwa.laterRuns, 0, 0, 1e6), never: !!raw.pwa.never,
+        installed: !!raw.pwa.installed, asked: num(raw.pwa.asked, 0, 0, 1e6), seenIos: !!raw.pwa.seenIos,
+      };
+    }
+    d.updatedAt = num(raw.updatedAt, 0, 0, 1e15);
     return d;
   }
 
   let data = defaults();
+  const persistHooks = [];
 
   function load() {
     try {
@@ -124,7 +177,9 @@ FF.Save = (() => {
 
   function persist() {
     try {
+      data.updatedAt = Date.now();
       localStorage.setItem(KEY, JSON.stringify(data));
+      persistHooks.forEach(fn => { try { fn(data); } catch (e) { /* 雲端同步失敗不影響存檔 */ } });
     } catch (e) { /* 無痕模式等情況，忽略 */ }
   }
 
@@ -132,6 +187,17 @@ FF.Save = (() => {
     load,
     persist,
     sanitize,
+    defaults,
+    KEY,
+    onPersist(fn) { persistHooks.push(fn); },
+    // 取代整份存檔（雲端還原用）：先過 sanitize，再寫進 localStorage
+    replace(raw, keep) {
+      const d = sanitize(raw);
+      if (keep) Object.assign(d, keep);
+      data = d;
+      try { localStorage.setItem(KEY, JSON.stringify(data)); } catch (e) { /* ignore */ }
+      return data;
+    },
     LIFE_SUM,
     LIFE_MAX,
     LIFE_SETS,

@@ -363,6 +363,96 @@ FF.Render = (() => {
     ctx.fill();
   }
 
+  // 男友的後髮：短髮，只在頭頂和耳旁露出
+  function drawMaleBack(ctx, look, x, y, r, time) {
+    ctx.fillStyle = look.hair;
+    const st = look.style;
+    const top = st === 'buzz' ? 1.07 : st === 'spiky' ? 1.12 : 1.14;
+    ctx.beginPath();
+    ctx.arc(x, y - 4, r * top, Math.PI, 0);
+    const end = st === 'buzz' ? -0.05 : 0.18;
+    ctx.lineTo(x + r * 1.06, y + r * end);
+    ctx.lineTo(x - r * 1.06, y + r * end);
+    ctx.closePath();
+    ctx.fill();
+    if (st === 'spiky') {
+      // 刺刺頭：頭頂幾根尖尖的，會微微晃
+      const sw = Math.sin(time * 3) * 2;
+      for (let i = -3; i <= 3; i++) {
+        const a = -Math.PI / 2 + i * 0.36;
+        const bx = x + Math.cos(a) * r * 1.1;
+        const by = y - 4 + Math.sin(a) * r * 1.1;
+        ctx.beginPath();
+        ctx.moveTo(bx - Math.cos(a + 1.57) * 9, by - Math.sin(a + 1.57) * 9);
+        ctx.lineTo(bx + Math.cos(a) * 20 + sw * i * 0.3, by + Math.sin(a) * 20);
+        ctx.lineTo(bx + Math.cos(a + 1.57) * 9, by + Math.sin(a + 1.57) * 9);
+        ctx.closePath();
+        ctx.fill();
+      }
+    }
+  }
+
+  // 男友的瀏海
+  function drawMaleBangs(ctx, look, x, y, r) {
+    ctx.fillStyle = look.hair;
+    const st = look.style;
+    ctx.beginPath();
+    if (st === 'buzz') {
+      // 圓寸：只有一道細細的髮際線
+      ctx.moveTo(x - r * 1.0, y - r * 0.5);
+      ctx.quadraticCurveTo(x, y - r * 1.12, x + r * 1.0, y - r * 0.5);
+      ctx.quadraticCurveTo(x, y - r * 0.82, x - r * 1.0, y - r * 0.5);
+    } else if (st === 'spiky') {
+      // 往前翹的幾撮
+      ctx.moveTo(x - r * 1.02, y - 4);
+      ctx.lineTo(x - r * 0.95, y - r * 0.62);
+      ctx.lineTo(x - r * 0.62, y - r * 0.36);
+      ctx.lineTo(x - r * 0.38, y - r * 0.66);
+      ctx.lineTo(x - r * 0.08, y - r * 0.34);
+      ctx.lineTo(x + r * 0.2, y - r * 0.68);
+      ctx.lineTo(x + r * 0.5, y - r * 0.4);
+      ctx.lineTo(x + r * 0.78, y - r * 0.64);
+      ctx.lineTo(x + r * 1.02, y - 4);
+      ctx.quadraticCurveTo(x, y - r * 1.25, x - r * 1.02, y - 4);
+    } else {
+      // crew／crop：平整的短瀏海，中間有一點點分線
+      const low = st === 'crop' ? 0.5 : 0.42;
+      ctx.moveTo(x - r * 1.02, y - 2);
+      ctx.quadraticCurveTo(x - r * 0.9, y - r * 1.2, x, y - r * 1.06);
+      ctx.quadraticCurveTo(x + r * 0.9, y - r * 1.2, x + r * 1.02, y - 2);
+      ctx.lineTo(x + r * 0.86, y - r * low);
+      ctx.lineTo(x + r * 0.5, y - r * (low + 0.1));
+      ctx.lineTo(x + r * 0.15, y - r * low);
+      ctx.lineTo(x - r * 0.2, y - r * (low + 0.12));
+      ctx.lineTo(x - r * 0.6, y - r * low);
+      ctx.lineTo(x - r * 0.88, y - r * (low + 0.04));
+      ctx.closePath();
+    }
+    ctx.fill();
+  }
+
+  // 男友的圍巾（傲嬌模式）：繞在脖子上，尾巴垂在胸前
+  function drawScarf(ctx, look, x, y, r, time) {
+    ctx.fillStyle = look.accColor;
+    ctx.beginPath();
+    ctx.ellipse(x, y + r + 4, 38, 13, 0, 0, Math.PI * 2);
+    ctx.fill();
+    const sw = Math.sin(time * 2.4) * 3;
+    ctx.beginPath();
+    ctx.moveTo(x + 8, y + r + 8);
+    ctx.lineTo(x + 30 + sw, y + r + 8);
+    ctx.lineTo(x + 36 + sw, y + r + 50);
+    ctx.lineTo(x + 14 + sw, y + r + 46);
+    ctx.closePath();
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(255,255,255,0.55)';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(x + 14 + sw, y + r + 34);
+    ctx.lineTo(x + 35 + sw, y + r + 37);
+    ctx.stroke();
+  }
+
   // 頭上的配件
   function drawHairAcc(ctx, look, x, y, r) {
     ctx.fillStyle = look.accColor;
@@ -414,7 +504,9 @@ FF.Render = (() => {
 
   function drawGF(ctx, game, time, personaOverride) {
     const G = C.gf;
-    const ap = (personaOverride || (game && game.persona) || FF.PERSONAS[0]).look; // 外觀
+    const persona = personaOverride || (game && game.persona) || FF.PERSONAS[0];
+    const male = FF.G.partner() === 'm';
+    const ap = (male && persona.lookM) || persona.look; // 外觀（對象是男朋友就用男生版）
     const m = mood(game);
     const g = game ? game.gf : null;
     const chewing = g && (g.state === 'chew' || g.state === 'retract');
@@ -442,17 +534,26 @@ FF.Render = (() => {
     }
 
     // 身體（上衣）
+    const sh = ap.male ? 100 : 85; // 男生肩膀比較寬
     ctx.fillStyle = ap.shirt;
     ctx.beginPath();
-    ctx.moveTo(x - 85, 262);
-    ctx.quadraticCurveTo(x - 80, y + r + 10, x, y + r + 6);
-    ctx.quadraticCurveTo(x + 80, y + r + 10, x + 85, 262);
+    ctx.moveTo(x - sh, 262);
+    ctx.quadraticCurveTo(x - sh + 5, y + r + 10, x, y + r + 6);
+    ctx.quadraticCurveTo(x + sh - 5, y + r + 10, x + sh, 262);
     ctx.closePath();
     ctx.fill();
     ctx.fillStyle = '#ffe0c7';
     ctx.beginPath();
-    ctx.ellipse(x, y + r + 6, 18, 10, 0, 0, Math.PI * 2);
+    ctx.ellipse(x, y + r + 6, ap.male ? 21 : 18, 10, 0, 0, Math.PI * 2);
     ctx.fill();
+    if (ap.male && ap.acc !== 'scarf') {
+      // T 恤圓領
+      ctx.strokeStyle = 'rgba(0,0,0,0.18)';
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.ellipse(x, y + r + 8, 24, 12, 0, 0.05 * Math.PI, 0.95 * Math.PI);
+      ctx.stroke();
+    }
     if (ap.acc === 'bib') {
       // 吃貨的圍兜兜
       ctx.fillStyle = ap.accColor;
@@ -471,7 +572,9 @@ FF.Render = (() => {
       }
     }
 
-    drawBackHair(ctx, ap, x, y, r, time);
+    if (ap.acc === 'scarf') drawScarf(ctx, ap, x, y, r, time);
+    if (ap.male) drawMaleBack(ctx, ap, x, y, r, time);
+    else drawBackHair(ctx, ap, x, y, r, time);
 
     // 臉
     ctx.fillStyle = m === 'furious' ? '#ffc3b0' : '#ffe0c7';
@@ -481,6 +584,8 @@ FF.Render = (() => {
 
     // 瀏海
     ctx.fillStyle = ap.hair;
+    if (ap.male) drawMaleBangs(ctx, ap, x, y, r);
+    else {
     ctx.beginPath();
     ctx.moveTo(x - r * 1.02, y - 2);
     ctx.quadraticCurveTo(x - r * 0.9, y - r * 1.2, x, y - r * 1.05);
@@ -490,11 +595,12 @@ FF.Render = (() => {
     ctx.quadraticCurveTo(x - r * 0.45, y - r * 0.7, x - r * 0.6, y - r * 0.4);
     ctx.quadraticCurveTo(x - r * 0.85, y - r * 0.5, x - r * 1.02, y - 2);
     ctx.fill();
+    }
 
     drawHairAcc(ctx, ap, x, y, r);
 
     // 腮紅
-    ctx.fillStyle = m === 'furious' ? 'rgba(255,60,60,0.45)' : 'rgba(255,120,150,0.35)';
+    ctx.fillStyle = m === 'furious' ? 'rgba(255,60,60,0.45)' : ap.male ? 'rgba(255,120,120,0.2)' : 'rgba(255,120,150,0.35)';
     ctx.beginPath();
     ctx.ellipse(x - r * 0.55, y + r * 0.25, 11, 7, 0, 0, Math.PI * 2);
     ctx.ellipse(x + r * 0.55, y + r * 0.25, 11, 7, 0, 0, Math.PI * 2);
@@ -594,6 +700,20 @@ FF.Render = (() => {
           ctx.stroke();
         }
       }
+    }
+
+    // 男友的眉毛：粗一點、平一點（生氣時上面已經畫過斜眉）
+    if (ap.male && m !== 'annoyed' && m !== 'furious') {
+      ctx.strokeStyle = ap.hair;
+      ctx.lineWidth = 5;
+      const by = scared ? ey - 21 : ey - 15;
+      for (const s of [-1, 1]) {
+        ctx.beginPath();
+        ctx.moveTo(x + s * (ex + 9), by + (scared ? 0 : 1));
+        ctx.lineTo(x + s * (ex - 9), by - (scared ? 3 : 0));
+        ctx.stroke();
+      }
+      ctx.strokeStyle = '#3a2219';
     }
 
     // 嘴巴
@@ -847,6 +967,15 @@ FF.Render = (() => {
   }
 
   function drawItems(ctx, game, time) {
+    if (game.comp) {
+      // 競技模式（對決、每日同題）：能力統一、不能用道具
+      ctx.fillStyle = 'rgba(0,0,0,0.3)';
+      roundRect(ctx, 50, 890, 440, 44, 22);
+      ctx.fill();
+      const lab = game.comp.kind === 'daily' ? (game.comp.practice ? '🗓️ 每日同題（練習・不計分）' : '🗓️ 每日同題（正式成績）') : '⚔️ 對決';
+      text(ctx, `${lab}：能力統一、不能用道具`, 270, 912, 15, '#ffe9cf');
+      return;
+    }
     if (game.challenge) {
       // 挑戰模式不能用道具
       ctx.fillStyle = 'rgba(0,0,0,0.3)';
@@ -896,7 +1025,7 @@ FF.Render = (() => {
     const maxW = 170;
     const lines = [];
     let cur = '';
-    for (const ch of b.text) {
+    for (const ch of FF.G.units(b.text)) {
       if (ctx.measureText(cur + ch).width > maxW) {
         lines.push(cur);
         cur = ch;
@@ -1093,7 +1222,7 @@ FF.Render = (() => {
     const lines = [];
     for (const raw of b.sub.split('\n')) {
       let cur = '';
-      for (const ch of raw) {
+      for (const ch of FF.G.units(raw)) {
         // 標點不放行首（寧可讓上一行稍微超出一個字）
         if (ctx.measureText(cur + ch).width > C.W - 40 && cur && !'，。、；：！？）」』…'.includes(ch)) {
           lines.push(cur);
@@ -1277,5 +1406,5 @@ FF.Render = (() => {
     drawWisps(ctx, time);
   }
 
-  return { drawGame, drawMenuBg, fmtTime };
+  return { drawGame, drawMenuBg, fmtTime, drawGF };
 })();

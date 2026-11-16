@@ -93,7 +93,7 @@ Object.assign(FF.Game.prototype, {
     const { pick } = FF.util;
     let good = null;
     let text;
-    if (Math.random() < 0.35) {
+    if (FF.util.R() < 0.35) {
       good = pick((v.goodPitches || []).concat(FF.PITCHES_GOOD));
       text = good.text;
     } else {
@@ -315,7 +315,7 @@ Object.assign(FF.Game.prototype, {
     if (!w.good) this.stats.badBuys++;
     if (w.good) {
       this.applyGoodPitch(w.good);
-    } else if (Math.random() < 0.3) {
+    } else if (FF.util.R() < 0.3) {
       this.float(270, 520, '買了！-30 分', '#ffd0a0', 26);
       this.anger = Math.max(0, this.anger - 10);
       this.say(pick(FF.WAITER_LINES.gfLike), 2.4, true);

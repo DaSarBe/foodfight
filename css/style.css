@@ -214,7 +214,7 @@ h3 small { font-size: 0.7em; color: #a0704f; font-weight: normal; }
 
 /* ---------- 主選單（新版） ---------- */
 .menu-panel { padding-top: 1.2em; gap: 0.55em; }
-.menu-panel .logo { font-size: 3.6em; }
+.menu-panel .logo { font-size: 2.8em; }
 .menu-panel h1 { font-size: 2.1em; }
 .menu-panel .tagline { margin: -0.3em 0 0; }
 .menu-meta { display: flex; justify-content: center; align-items: center; gap: 0.6em; flex-wrap: wrap; }
@@ -231,8 +231,8 @@ h3 small { font-size: 0.7em; color: #a0704f; font-weight: normal; }
 .setup-card:active { transform: translateY(0.1em); }
 .setup-card .chip { background: #fff3e4; border-radius: 0.8em; padding: 0.25em 0.6em; font-size: 0.92em; font-weight: bold; white-space: nowrap; }
 .setup-card .setup-edit { font-size: 0.9em; color: #c2412b; font-weight: bold; white-space: nowrap; }
-.menu-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5em; }
-.btn.tile { font-size: 1.05em; padding: 0.55em 0.4em; position: relative; display: flex; flex-direction: column; align-items: center; gap: 0.1em; }
+.menu-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.45em; }
+.btn.tile { font-size: 0.95em; padding: 0.5em 0.2em; position: relative; display: flex; flex-direction: column; align-items: center; gap: 0.1em; }
 .btn.tile small { font-size: 0.72em; font-weight: normal; color: #a0603a; }
 .dot { position: absolute; top: 0.35em; right: 0.45em; width: 0.7em; height: 0.7em; border-radius: 50%; background: #ff3b30; box-shadow: 0 0 0 0.15em #fff; animation: pulse 0.9s ease-in-out infinite; }
 .btn.ghost { background: transparent; box-shadow: none; color: #a0603a; text-decoration: underline; padding: 0.2em; }
@@ -302,3 +302,129 @@ h3 small { font-size: 0.7em; color: #a0704f; font-weight: normal; }
 .share-panel { height: 100%; }
 .share-preview { flex: 1; min-height: 0; display: flex; justify-content: center; }
 .share-preview img { max-width: 100%; max-height: 100%; height: auto; border-radius: 0.8em; box-shadow: 0 0.2em 0.8em rgba(0,0,0,0.3); object-fit: contain; }
+
+/* ---------- v3：主選單新入口 ---------- */
+.menu-panel { max-height: 100%; }
+.setup-card .chip { padding: 0.2em 0.5em; font-size: 0.86em; }
+.daily-card {
+  font: inherit; position: relative; display: flex; flex-direction: column; gap: 0.12em; align-items: flex-start; text-align: left;
+  background: linear-gradient(135deg, #fff3c4, #ffe0b0); border: 0.15em solid #ffc062; border-radius: 1em; padding: 0.5em 0.8em;
+  color: #6b3a00; cursor: pointer; box-shadow: 0 0.18em 0 #e0a040;
+}
+.daily-card:active { transform: translateY(0.12em); box-shadow: 0 0.06em 0 #e0a040; }
+.daily-card .dc-head { display: flex; justify-content: space-between; width: 100%; font-size: 1.1em; }
+.daily-card small { font-size: 0.8em; color: #a0703a; }
+.daily-card .dc-cfg { font-size: 0.82em; color: #8a5a2a; }
+.daily-card .dc-stat { font-size: 0.9em; font-weight: bold; color: #c2412b; }
+.btn.tile.soft-off { opacity: 0.6; }
+.menu-foot { display: flex; justify-content: center; flex-wrap: wrap; gap: 0.1em 0.6em; }
+.menu-foot .btn.small { font-size: 0.85em; }
+
+/* 對象與自己 */
+.set-block { text-align: left; }
+.set-block h3 { margin: 0.2em 0 0.3em; }
+.who-row { display: flex; align-items: center; gap: 0.4em; margin: 0.3em 0; font-weight: bold; color: #7a3b12; }
+.who-row > span { flex: 0 0 5.2em; text-align: left; }
+.seg {
+  font: inherit; flex: 1; font-weight: bold; padding: 0.5em 0.2em; border: none; border-radius: 0.8em; background: #f5dcc0; color: #8a5a3a;
+  cursor: pointer; box-shadow: 0 0.12em 0 #d9a06a;
+}
+.seg.on { background: #ff7a59; color: #fff; box-shadow: 0 0.12em 0 #a8301f; }
+.linkish { font: inherit; border: none; background: none; color: #c2412b; text-decoration: underline; cursor: pointer; padding: 0; }
+.who-prev { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5em; margin-top: 0.6em; }
+.who-cell { background: #fff; border-radius: 0.8em; padding: 0.3em; display: flex; flex-direction: column; align-items: center; font-size: 0.85em; font-weight: bold; color: #7a3b12; box-shadow: 0 0.12em 0 #f0d2b0; }
+.who-cell canvas { width: 100%; height: auto; border-radius: 0.6em; }
+.set-nick { display: flex; gap: 0.4em; }
+.set-nick input, .dlg-input {
+  font: inherit; flex: 1; min-width: 0; padding: 0.5em 0.7em; border: 0.15em solid #ffc48a; border-radius: 0.8em; background: #fff; color: #5a2a14;
+  user-select: text; -webkit-user-select: text; width: 100%;
+}
+textarea.dlg-input { resize: none; font-size: 0.85em; word-break: break-all; }
+.set-links { display: flex; gap: 0.5em; justify-content: center; flex-wrap: wrap; }
+#settings .panel { max-height: 100%; }
+
+/* 對話框 */
+.dialog-panel { max-height: 94%; }
+.dlg-body { text-align: left; font-size: 0.98em; line-height: 1.55; }
+.dlg-body p { margin: 0.3em 0; }
+.dlg-btns { display: flex; flex-direction: column; gap: 0.45em; margin-top: 0.3em; }
+.dlg-btns .btn { font-size: 1.05em; }
+.dlg-btns .btn.primary { font-size: 1.2em; }
+.dlg-err { color: #c2412b; font-weight: bold; font-size: 0.9em; min-height: 1.2em; }
+
+/* 每日同題 */
+.dly-card { background: #fff; border-radius: 0.9em; padding: 0.7em 0.9em; margin-bottom: 0.5em; text-align: left; box-shadow: 0 0.12em 0 #f0d2b0; }
+.dly-card.done { background: #f1fbf2; box-shadow: 0 0.12em 0 #9fd8a8; }
+.dly-date { font-weight: bold; font-size: 1.05em; }
+.dly-left { font-size: 0.88em; color: #8a5a3a; margin-bottom: 0.3em; }
+.dly-cfg { display: grid; grid-template-columns: 1fr 1fr; gap: 0.3em 0.8em; font-size: 0.9em; }
+.dly-cfg div { display: flex; flex-direction: column; }
+.dly-cfg span { font-size: 0.8em; color: #a0704f; }
+.dly-title { font-weight: bold; color: #2f7d4a; }
+.dly-card:not(.done) .dly-title { color: #c2412b; }
+.dly-score { font-size: 2.2em; font-weight: 900; color: #c2412b; line-height: 1.1; }
+.dly-score small { font-size: 0.4em; color: #8a5a3a; }
+.dly-sub { font-size: 0.88em; color: #7a4a2a; margin-top: 0.15em; }
+.dly-rules { font-size: 0.82em; color: #7a4a2a; background: #fff3e4; border-radius: 0.8em; padding: 0.5em 0.7em; margin-bottom: 0.5em; text-align: left; }
+#daily-body > .btn { width: 100%; margin-bottom: 0.45em; }
+.btn-row.two { grid-template-columns: 1fr 1fr; }
+#daily-body .btn-row { margin-bottom: 0.45em; }
+
+/* 戰帖 */
+.duel-card { background: #fff; border-radius: 0.9em; padding: 0.7em; text-align: center; box-shadow: inset 0 0 0 0.15em #ffc48a; }
+.duel-from { font-size: 1.05em; }
+.duel-score { font-size: 2.8em; font-weight: 900; color: #c2412b; line-height: 1.1; }
+.duel-score small { font-size: 0.35em; color: #8a5a3a; }
+.duel-sub { color: #8a5a3a; font-size: 0.9em; }
+.duel-cfg { display: flex; flex-wrap: wrap; gap: 0.3em; justify-content: center; margin: 0.4em 0; }
+.duel-cfg span { background: #fff3e4; border-radius: 0.8em; padding: 0.2em 0.6em; font-size: 0.85em; font-weight: bold; }
+.duel-notes { text-align: left; font-size: 0.82em; color: #7a4a2a; margin: 0.3em 0 0; padding-left: 1.2em; }
+.comp-box { background: #fff3e4; border-radius: 0.9em; padding: 0.5em 0.8em; text-align: left; font-size: 0.9em; }
+.comp-line { margin: 0.2em 0; line-height: 1.5; }
+.comp-line.sub { font-size: 0.82em; color: #8a5a3a; }
+.comp-line.ok { color: #2f7d4a; font-weight: bold; }
+.comp-line.warn { color: #b0602a; font-weight: bold; }
+.vs { display: flex; align-items: center; justify-content: space-around; background: #fff; border-radius: 0.8em; padding: 0.4em; }
+.vs-side { display: flex; flex-direction: column; align-items: center; min-width: 0; }
+.vs-side b { font-size: 1.8em; color: #c2412b; }
+.vs-side small { color: #8a5a3a; max-width: 7em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.vs-mid { font-size: 2em; }
+.vs-win { box-shadow: inset 0 0 0 0.15em #7ed08a; }
+.vs-lose { box-shadow: inset 0 0 0 0.15em #f0a0a0; }
+.vs-taunt { margin: 0.4em 0 0.1em; font-weight: bold; color: #9a2f55; }
+
+/* 排行榜 */
+.rk-row { display: flex; align-items: center; gap: 0.5em; background: #fff; border-radius: 0.8em; padding: 0.4em 0.7em; margin-bottom: 0.3em; text-align: left; box-shadow: 0 0.1em 0 #f0d2b0; }
+.rk-row.me { background: #fff3c4; box-shadow: 0 0.1em 0 #e0a040; }
+.rk-no { flex: 0 0 2em; text-align: center; font-weight: bold; color: #a0703a; }
+.rk-nick { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.rk-nick b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rk-nick small { color: #8a5a3a; font-size: 0.78em; }
+.rk-score { font-weight: 900; color: #c2412b; font-size: 1.1em; }
+.rank-me { min-height: 0; }
+.empty-card { text-align: center; padding: 1.2em 0.8em; color: #7a4a2a; }
+.empty-card .big { font-size: 3em; }
+.empty-card h3 { text-align: center; }
+
+/* 雲端存檔 */
+.acc-card { background: #fff; border-radius: 0.9em; padding: 0.7em 0.9em; margin-bottom: 0.5em; text-align: left; box-shadow: 0 0.12em 0 #f0d2b0; display: flex; flex-direction: column; gap: 0.4em; }
+.acc-card h3 { margin: 0; }
+.acc-card p { margin: 0; font-size: 0.9em; color: #7a4a2a; }
+.acc-card.ok { background: #f1fbf2; }
+.acc-card.warn { background: #fff0d0; box-shadow: inset 0 0 0 0.15em #f0b040; }
+.acc-sum { display: flex; gap: 0.8em; font-weight: bold; font-size: 1.05em; }
+.cf-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5em; margin: 0.4em 0; }
+.cf-col { background: #fff; border-radius: 0.8em; padding: 0.5em; text-align: center; font-weight: bold; box-shadow: inset 0 0 0 0.12em #ffc48a; }
+.cf-col h4 { margin: 0 0 0.3em; font-size: 0.95em; }
+.cf-col small { color: #8a5a3a; font-weight: normal; }
+
+/* 加到主畫面 */
+.pwa-card { background: #fff7d6; border: 0.15em dashed #ffc062; border-radius: 0.9em; padding: 0.5em 0.8em; text-align: left; font-size: 0.9em; }
+.pwa-card .pwa-title { font-weight: bold; color: #c2412b; }
+.pwa-card p { margin: 0.25em 0; color: #7a4a2a; }
+.pwa-btns { display: flex; gap: 0.4em; flex-wrap: wrap; }
+.pwa-line { background: #fff7d6; border-radius: 0.8em; padding: 0.5em 0.7em; color: #7a4a2a; }
+.ios-steps { list-style: none; padding: 0; margin: 0.4em 0; display: flex; flex-direction: column; gap: 0.4em; counter-reset: st; }
+.ios-steps li { display: flex; align-items: center; gap: 0.6em; background: #fff; border-radius: 0.8em; padding: 0.4em 0.6em; counter-increment: st; box-shadow: 0 0.1em 0 #f0d2b0; }
+.ios-steps li::before { content: counter(st); background: #ff7a59; color: #fff; border-radius: 50%; width: 1.5em; height: 1.5em; display: flex; align-items: center; justify-content: center; font-weight: bold; flex: 0 0 auto; }
+.ios-ic { flex: 0 0 3.8em; display: flex; justify-content: center; }

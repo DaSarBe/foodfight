@@ -10,7 +10,7 @@
   let playing = false;
   let edgeTimer = 0;
 
-  FF.debug = { timeScale: 1, get game() { return game; } };
+  FF.debug = { timeScale: 1, get game() { return game; }, cloudMock: () => FF.Cloud.enableMock() };
 
   function resize() {
     const vw = window.innerWidth;
@@ -55,13 +55,18 @@
       app.startGame(opts);
     },
     startGame(opts = {}) {
+      // 競技模式（對決、每日同題）：種子、配置由戰帖或日期決定；對決的對象性別以戰帖為準（只限這局）
+      const comp = opts.compete || null;
+      FF.G.setOverride(comp && comp.kind === 'duel' ? comp.partner : null);
+      if (comp) FF.UIX.lastComp = { ...comp };
       game = new FF.Game(FF.Save.data, {
         onGameOver: res => {
           playing = false;
           FF.UI.showResult(res);
+          FF.Cloud.autoSync();
         },
         onPause: () => app.pause(),
-      }, opts);
+      }, { ...opts, compete: comp, seed: comp ? comp.seed : opts.seed });
       playing = true;
       FF.UI.show(null);
     },
@@ -84,7 +89,11 @@
   };
   FF.app = app;
   FF.UI.init(app);
+  FF.G.start();
   FF.UI.show('menu');
+  FF.PWA.register();
+  FF.Cloud.boot();
+  FF.UIX.handleUrlDuel();
 
   // 輸入
   function toLogical(e) {

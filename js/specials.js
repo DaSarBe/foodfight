@@ -33,10 +33,10 @@ Object.assign(FF.Game.prototype, {
     const ready = this.ultCd <= 0 && this.ultHot >= U.firstCooldown && this.t >= U.minTime &&
       !this.waiter && !this.crash && !this.distracted() &&
       ['idle', 'return', 'chew', 'reach', 'hover'].includes(this.gf.state) && !(c && c.strike);
-    if (ready && Math.random() < U.chancePerSec * this.pm.ult * dt) {
+    if (ready && FF.util.R() < U.chancePerSec * this.pm.ult * dt) {
       const cands = this.sweepCandidates();
       const bias = this.persona.sweepBias == null ? 0.5 : this.persona.sweepBias;
-      this.startUlt(cands.length >= 2 && Math.random() < bias ? 'sweep' : 'combo');
+      this.startUlt(cands.length >= 2 && FF.util.R() < bias ? 'sweep' : 'combo');
     }
   },
 
@@ -365,7 +365,7 @@ Object.assign(FF.Game.prototype, {
     if (kind === 'love') {
       const n = d.rare || fav ? 12 : 7;
       // 愛心從頭頂冒出來，不要擋住愛心眼
-      this.burst(G.x, G.y - 55, n, ['#fff'], { speed: 170, size: 22, life: 1.1, gravity: -80, emoji: pick(['💕', '💗', '💖']) });
+      this.burst(G.x, G.y - 55, n, ['#fff'], { speed: 170, size: 22, life: 1.1, gravity: -80, emoji: FF.util.vpick(['💕', '💗', '💖']) });
       this.burst(G.x, G.y - 55, 4, ['#fff'], { speed: 110, size: 18, life: 1.0, gravity: -80, emoji: '❤️' });
       FF.Audio.play('feed');
     } else if (kind === 'yuck') {

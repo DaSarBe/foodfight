@@ -26,7 +26,7 @@ FF.Share = (() => {
   function wrap(ctx, str, maxW, maxLines) {
     const lines = [];
     let cur = '';
-    for (const ch of String(str)) {
+    for (const ch of FF.G.units(str)) {
       if (ctx.measureText(cur + ch).width > maxW && cur) {
         lines.push(cur);
         cur = ch;
