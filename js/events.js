@@ -22,6 +22,8 @@ Object.assign(FF.Game.prototype, {
     this.stats.crashFails = 0;
     this.stats.pitchesBought = 0;
     this.stats.goodDeals = 0;
+    this.stats.badBuys = 0;
+    this.stats.declines = 0;
   },
 
   distracted() {
@@ -299,6 +301,7 @@ Object.assign(FF.Game.prototype, {
     const w = this.waiter;
     if (!w || w.phase !== 'pitch') return;
     FF.Audio.play('click');
+    this.stats.declines++;
     this.waiterLeave(FF.util.pick(FF.WAITER_LINES.no));
   },
 
@@ -309,6 +312,7 @@ Object.assign(FF.Game.prototype, {
     FF.Audio.play('coin');
     this.score = Math.max(0, this.score - 30);
     this.stats.pitchesBought++;
+    if (!w.good) this.stats.badBuys++;
     if (w.good) {
       this.applyGoodPitch(w.good);
     } else if (Math.random() < 0.3) {

@@ -1,35 +1,58 @@
 // WebAudio 即時合成音效，第一次使用者互動後才建立 AudioContext
+// 音效與背景音樂走不同的音量匯流排：sfx → out、music → out，可以分開開關
 window.FF = window.FF || {};
 
 FF.Audio = (() => {
   let ctx = null;
-  let master = null;
+  let out = null;     // 總輸出
+  let master = null;  // 音效匯流排
+  let musicBus = null;
   let muted = false;
   let noiseBuf = null;
+  let hidden = false; // 分頁隱藏時暫停整個 AudioContext
+  const unlockCbs = [];
 
   function unlock() {
     if (ctx) {
-      if (ctx.state === 'suspended') ctx.resume();
+      if (ctx.state === 'suspended' && !hidden) ctx.resume();
       return;
     }
     const AC = window.AudioContext || window.webkitAudioContext;
     if (!AC) return;
     try {
       ctx = new AC();
+      out = ctx.createGain();
+      out.gain.value = 1;
+      out.connect(ctx.destination);
       master = ctx.createGain();
       master.gain.value = muted ? 0 : 0.5;
-      master.connect(ctx.destination);
+      master.connect(out);
+      musicBus = ctx.createGain();
+      musicBus.gain.value = 0;
+      musicBus.connect(out);
       noiseBuf = ctx.createBuffer(1, ctx.sampleRate * 0.5, ctx.sampleRate);
       const d = noiseBuf.getChannelData(0);
       for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
     } catch (e) {
       ctx = null;
+      return;
     }
+    unlockCbs.forEach(fn => { try { fn(); } catch (e) { /* 忽略 */ } });
   }
 
   function setMuted(m) {
     muted = m;
     if (master) master.gain.value = m ? 0 : 0.5;
+  }
+
+  // 分頁隱藏：暫停 AudioContext（音樂排程器也會停）；回來再恢復
+  function setHidden(h) {
+    hidden = h;
+    if (!ctx) return;
+    try {
+      if (h && ctx.state === 'running') ctx.suspend();
+      else if (!h && ctx.state === 'suspended') ctx.resume();
+    } catch (e) { /* 忽略 */ }
   }
 
   function tone(freq, dur, { type = 'sine', vol = 0.3, slide = 0, delay = 0 } = {}) {
@@ -133,6 +156,11 @@ FF.Audio = (() => {
   return {
     unlock,
     setMuted,
+    setHidden,
+    onUnlock(fn) { unlockCbs.push(fn); },
+    get ctx() { return ctx; },
+    get musicBus() { return musicBus; },
+    get noiseBuf() { return noiseBuf; },
     play(name, arg) {
       try { sfx[name] && sfx[name](arg); } catch (e) { /* 忽略音效錯誤 */ }
     },

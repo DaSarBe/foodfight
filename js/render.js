@@ -67,8 +67,20 @@ FF.Render = (() => {
     ctx.fillRect(0, 255, C.W, 4);
   }
 
-  function drawPot(ctx, time, spicy, soupT) {
+  function soupGradient(ctx, cols) {
     const P = C.pot;
+    const g = ctx.createRadialGradient(P.x - 40, P.y - 50, 10, P.x, P.y, P.r);
+    g.addColorStop(0, cols[0]);
+    g.addColorStop(0.7, cols[1]);
+    g.addColorStop(1, cols[2]);
+    return g;
+  }
+
+  function drawPot(ctx, time, spicy, soupT, broth) {
+    const P = C.pot;
+    const b = broth || FF.BROTHS[0];
+    const colsR = spicy ? b.spicySoup : b.soup;
+    const colsL = b.split ? (spicy ? b.spicySoupLeft : b.soupLeft) : colsR;
     // 把手
     ctx.fillStyle = '#5d6670';
     roundRect(ctx, P.x - P.r - 30, P.y - 16, 40, 32, 10);
@@ -89,21 +101,22 @@ FF.Render = (() => {
     ctx.beginPath();
     ctx.arc(P.x, P.y, P.r + 14, 0, Math.PI * 2);
     ctx.fill();
-    // 湯
-    const soup = ctx.createRadialGradient(P.x - 40, P.y - 50, 10, P.x, P.y, P.r);
-    if (spicy) {
-      soup.addColorStop(0, '#ff7a45');
-      soup.addColorStop(0.7, '#d7301f');
-      soup.addColorStop(1, '#8f1a0e');
-    } else {
-      soup.addColorStop(0, '#ffd27d');
-      soup.addColorStop(0.7, '#e9a23b');
-      soup.addColorStop(1, '#b8691b');
-    }
-    ctx.fillStyle = soup;
+    // 湯（鴛鴦鍋左右兩種顏色）
+    ctx.fillStyle = soupGradient(ctx, colsR);
     ctx.beginPath();
     ctx.arc(P.x, P.y, P.r, 0, Math.PI * 2);
     ctx.fill();
+    if (b.split) {
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(P.x - P.r - 2, P.y - P.r - 2, P.r + 2, P.r * 2 + 4);
+      ctx.clip();
+      ctx.fillStyle = soupGradient(ctx, colsL);
+      ctx.beginPath();
+      ctx.arc(P.x, P.y, P.r, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
     // 湯面泡泡
     ctx.save();
     ctx.beginPath();
@@ -118,7 +131,7 @@ FF.Render = (() => {
       const by = P.y + Math.sin(a) * r;
       const br = 3 + (i % 4) * 2.2;
       ctx.globalAlpha = (1 - ph) * 0.55;
-      ctx.strokeStyle = spicy ? '#ffd0b0' : '#fff6dc';
+      ctx.strokeStyle = bx < P.x ? colsL[3] : colsR[3];
       ctx.lineWidth = 2;
       ctx.beginPath();
       ctx.arc(bx, by, br * (0.4 + ph), 0, Math.PI * 2);
@@ -135,6 +148,37 @@ FF.Render = (() => {
         const a = time * 0.4 + i;
         emoji(ctx, '🌶️', P.x + Math.cos(a) * (P.r - 40), P.y + Math.sin(a * 1.3) * (P.r - 50), 18);
       }
+    } else if (b.id === 'mala' || b.split) {
+      // 麻辣湯面漂著辣椒和花椒（鴛鴦鍋只在左半邊）
+      for (let i = 0; i < 4; i++) {
+        const a = time * 0.25 + i * 1.7;
+        let cx = P.x + Math.cos(a) * (P.r - 45);
+        if (b.split) cx = P.x - 40 - Math.abs(Math.cos(a)) * (P.r - 90);
+        ctx.globalAlpha = 0.85;
+        emoji(ctx, i % 2 ? '🌶️' : '🟤', cx, P.y + Math.sin(a * 1.2) * (P.r - 55), i % 2 ? 16 : 8);
+        ctx.globalAlpha = 1;
+      }
+    } else if (b.id === 'milk') {
+      // 牛奶鍋的奶泡紋路
+      ctx.strokeStyle = 'rgba(255,255,255,0.55)';
+      ctx.lineWidth = 3;
+      for (let i = 0; i < 3; i++) {
+        ctx.beginPath();
+        ctx.arc(P.x + Math.cos(time * 0.3 + i * 2) * 40, P.y + Math.sin(time * 0.3 + i * 2) * 40, 50 + i * 35, i, i + 2.2);
+        ctx.stroke();
+      }
+    }
+    if (b.split) {
+      // 中間的隔板
+      const g = ctx.createLinearGradient(P.x - 6, 0, P.x + 6, 0);
+      g.addColorStop(0, '#7d8790');
+      g.addColorStop(0.5, '#eef2f5');
+      g.addColorStop(1, '#6c7780');
+      ctx.fillStyle = g;
+      ctx.fillRect(P.x - 6, P.y - P.r, 12, P.r * 2);
+      ctx.strokeStyle = 'rgba(40,50,60,0.5)';
+      ctx.lineWidth = 1.5;
+      ctx.strokeRect(P.x - 6, P.y - P.r, 12, P.r * 2);
     }
     if (soupT > 0) {
       ctx.globalAlpha = Math.min(1, soupT) * 0.25;
@@ -265,8 +309,112 @@ FF.Render = (() => {
     return 'happy';
   }
 
-  function drawGF(ctx, game, time) {
+  // 後髮：依髮型不同
+  function drawBackHair(ctx, look, x, y, r, time) {
+    ctx.fillStyle = look.hair;
+    const st = look.style;
+    if (st === 'twin') {
+      // 雙馬尾：兩條垂在臉旁邊、會輕輕晃
+      for (const s of [-1, 1]) {
+        const sw = Math.sin(time * 2.2 + s) * 3;
+        ctx.beginPath();
+        ctx.moveTo(x + s * r * 0.95, y - r * 0.55);
+        ctx.quadraticCurveTo(x + s * r * 1.75 + sw, y + r * 0.2, x + s * r * 1.35 + sw, y + r * 1.45);
+        ctx.quadraticCurveTo(x + s * r * 1.15, y + r * 0.6, x + s * r * 0.85, y - r * 0.1);
+        ctx.closePath();
+        ctx.fill();
+      }
+    }
+    if (st === 'buns') {
+      // 丸子頭
+      for (const s of [-1, 1]) {
+        ctx.beginPath();
+        ctx.arc(x + s * r * 0.72, y - r * 0.92, r * 0.36, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+    if (st === 'short') {
+      // 高馬尾，從頭後面翹出來
+      const sw = Math.sin(time * 3) * 0.08;
+      ctx.save();
+      ctx.translate(x + r * 0.55, y - r * 0.95);
+      ctx.rotate(0.9 + sw);
+      ctx.beginPath();
+      ctx.ellipse(r * 0.45, 0, r * 0.62, r * 0.22, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
+    ctx.beginPath();
+    ctx.arc(x, y - 4, r * 1.14, Math.PI, 0);
+    if (st === 'long' || st === 'twin') {
+      ctx.lineTo(x + r * 1.14, y + r * 1.05);
+      ctx.quadraticCurveTo(x + r * 0.9, y + r * 1.25, x + r * 0.7, y + r * 0.9);
+      ctx.lineTo(x - r * 0.7, y + r * 0.9);
+      ctx.quadraticCurveTo(x - r * 0.9, y + r * 1.25, x - r * 1.14, y + r * 1.05);
+    } else {
+      // 短髮／包頭：只到耳下
+      const end = st === 'short' ? 0.25 : 0.55;
+      ctx.lineTo(x + r * 1.12, y + r * end);
+      ctx.quadraticCurveTo(x + r * 0.95, y + r * (end + 0.2), x + r * 0.75, y + r * end);
+      ctx.lineTo(x - r * 0.75, y + r * end);
+      ctx.quadraticCurveTo(x - r * 0.95, y + r * (end + 0.2), x - r * 1.12, y + r * end);
+    }
+    ctx.closePath();
+    ctx.fill();
+  }
+
+  // 頭上的配件
+  function drawHairAcc(ctx, look, x, y, r) {
+    ctx.fillStyle = look.accColor;
+    if (look.acc === 'ribbon') {
+      // 雙馬尾上的蝴蝶結
+      for (const s of [-1, 1]) {
+        const bx = x + s * r * 0.98;
+        const by = y - r * 0.55;
+        ctx.beginPath();
+        ctx.moveTo(bx, by);
+        ctx.lineTo(bx - 13, by - 9);
+        ctx.lineTo(bx - 13, by + 9);
+        ctx.closePath();
+        ctx.moveTo(bx, by);
+        ctx.lineTo(bx + 13, by - 9);
+        ctx.lineTo(bx + 13, by + 9);
+        ctx.closePath();
+        ctx.fill();
+        ctx.beginPath();
+        ctx.arc(bx, by, 4.5, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    } else if (look.acc === 'headband') {
+      // 綁在額頭的頭帶，中間一顆紅太陽
+      ctx.strokeStyle = look.accColor;
+      ctx.lineWidth = 9;
+      ctx.lineCap = 'butt';
+      ctx.beginPath();
+      ctx.arc(x, y + r * 0.12, r * 1.0, Math.PI * 1.13, Math.PI * 1.87);
+      ctx.stroke();
+      ctx.fillStyle = '#e8414f';
+      ctx.beginPath();
+      ctx.arc(x, y - r * 0.88, 5, 0, Math.PI * 2);
+      ctx.fill();
+      // 頭帶尾巴
+      ctx.fillStyle = look.accColor;
+      ctx.beginPath();
+      ctx.moveTo(x + r * 0.95, y - r * 0.35);
+      ctx.lineTo(x + r * 1.4, y - r * 0.1);
+      ctx.lineTo(x + r * 1.3, y + r * 0.05);
+      ctx.lineTo(x + r * 0.9, y - r * 0.22);
+      ctx.fill();
+    } else if (look.acc === 'clip') {
+      ctx.beginPath();
+      ctx.ellipse(x + r * 0.62, y - r * 0.72, 10, 6, -0.6, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+
+  function drawGF(ctx, game, time, personaOverride) {
     const G = C.gf;
+    const ap = (personaOverride || (game && game.persona) || FF.PERSONAS[0]).look; // 外觀
     const m = mood(game);
     const g = game ? game.gf : null;
     const chewing = g && (g.state === 'chew' || g.state === 'retract');
@@ -294,7 +442,7 @@ FF.Render = (() => {
     }
 
     // 身體（上衣）
-    ctx.fillStyle = '#ff8fb1';
+    ctx.fillStyle = ap.shirt;
     ctx.beginPath();
     ctx.moveTo(x - 85, 262);
     ctx.quadraticCurveTo(x - 80, y + r + 10, x, y + r + 6);
@@ -305,17 +453,25 @@ FF.Render = (() => {
     ctx.beginPath();
     ctx.ellipse(x, y + r + 6, 18, 10, 0, 0, Math.PI * 2);
     ctx.fill();
+    if (ap.acc === 'bib') {
+      // 吃貨的圍兜兜
+      ctx.fillStyle = ap.accColor;
+      ctx.beginPath();
+      ctx.moveTo(x - 30, y + r + 8);
+      ctx.quadraticCurveTo(x, y + r + 16, x + 30, y + r + 8);
+      ctx.lineTo(x + 22, 262);
+      ctx.lineTo(x - 22, 262);
+      ctx.closePath();
+      ctx.fill();
+      ctx.fillStyle = '#ff6b6b';
+      for (let i = 0; i < 3; i++) {
+        ctx.beginPath();
+        ctx.arc(x - 12 + i * 12, y + r + 28 + (i % 2) * 6, 3, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
 
-    // 後髮
-    ctx.fillStyle = '#4a2c22';
-    ctx.beginPath();
-    ctx.arc(x, y - 4, r * 1.14, Math.PI, 0);
-    ctx.lineTo(x + r * 1.14, y + r * 1.05);
-    ctx.quadraticCurveTo(x + r * 0.9, y + r * 1.25, x + r * 0.7, y + r * 0.9);
-    ctx.lineTo(x - r * 0.7, y + r * 0.9);
-    ctx.quadraticCurveTo(x - r * 0.9, y + r * 1.25, x - r * 1.14, y + r * 1.05);
-    ctx.closePath();
-    ctx.fill();
+    drawBackHair(ctx, ap, x, y, r, time);
 
     // 臉
     ctx.fillStyle = m === 'furious' ? '#ffc3b0' : '#ffe0c7';
@@ -324,7 +480,7 @@ FF.Render = (() => {
     ctx.fill();
 
     // 瀏海
-    ctx.fillStyle = '#4a2c22';
+    ctx.fillStyle = ap.hair;
     ctx.beginPath();
     ctx.moveTo(x - r * 1.02, y - 2);
     ctx.quadraticCurveTo(x - r * 0.9, y - r * 1.2, x, y - r * 1.05);
@@ -335,11 +491,7 @@ FF.Render = (() => {
     ctx.quadraticCurveTo(x - r * 0.85, y - r * 0.5, x - r * 1.02, y - 2);
     ctx.fill();
 
-    // 髮夾
-    ctx.fillStyle = '#ff6fa5';
-    ctx.beginPath();
-    ctx.ellipse(x + r * 0.62, y - r * 0.72, 10, 6, -0.6, 0, Math.PI * 2);
-    ctx.fill();
+    drawHairAcc(ctx, ap, x, y, r);
 
     // 腮紅
     ctx.fillStyle = m === 'furious' ? 'rgba(255,60,60,0.45)' : 'rgba(255,120,150,0.35)';
@@ -558,7 +710,15 @@ FF.Render = (() => {
     ctx.fillRect(P.x + 2, P.y - 8, 5, 16);
 
     text(ctx, `第 ${game.wave} 波`, 66, 28, 22, '#fff', { align: 'left' });
-    text(ctx, fmtTime(game.t), 270, 28, 24, '#ffe9a8');
+    const cs = game.challengeStatus();
+    if (cs && cs.left !== null) {
+      // 挑戰限時：中間改顯示倒數
+      const hurry = cs.left <= 10;
+      text(ctx, `⏰ ${fmtTime(Math.ceil(cs.left))}`, 270, 28, 24, hurry && Math.sin(time * 10) > 0 ? '#ff6b6b' : '#ffe9a8');
+    } else {
+      text(ctx, fmtTime(game.t), 270, 28, 24, '#ffe9a8');
+    }
+    if (cs) drawChallengeGoal(ctx, game, cs);
     text(ctx, `${game.score}`, 522, 26, 26, '#fff', { align: 'right' });
     text(ctx, '分', 522, 46, 11, '#ffd9b0', { align: 'right' });
 
@@ -595,6 +755,53 @@ FF.Render = (() => {
     bar(ctx, 140, 268, 300, 18, game.anger / 100, '#ffb3c7', '#ff2d55', `怒氣 ${Math.round(game.anger)}`, '😤', angerHigh);
     const satFrac = game.sat / game.mods.satMax;
     bar(ctx, 140, 728, 300, 18, satFrac, '#ffd36b', '#ff8a2a', `飽足 ${Math.round(game.sat)}/${game.mods.satMax}`, '🍚', satFrac < 0.25 ? time : 0);
+  }
+
+  // 紀念日挑戰的目標進度（畫面右上，窗戶上緣）
+  function drawChallengeGoal(ctx, game, cs) {
+    const ch = game.challenge;
+    ctx.font = `bold 13px ${TEXT_FONT}`;
+    // 太長就拆兩行，避免擋到她的臉
+    let lines = [cs.text];
+    if (ctx.measureText(cs.text).width > 150) lines = cs.text.split('　');
+    const tw = Math.max(...lines.map(l => ctx.measureText(l).width));
+    const w = Math.min(204, tw + 50);
+    const h = lines.length * 16 + 18;
+    const x = C.W - 8 - w;
+    const y = 60;
+    ctx.fillStyle = 'rgba(90,20,40,0.82)';
+    roundRect(ctx, x, y, w, h, 12);
+    ctx.fill();
+    emoji(ctx, ch.icon, x + 16, y + h / 2 - 2, 18);
+    lines.forEach((l, i) => text(ctx, l, x + 31, y + 12 + i * 16, 13, '#fff', { align: 'left' }));
+    ctx.fillStyle = 'rgba(255,255,255,0.25)';
+    roundRect(ctx, x + 31, y + h - 8, w - 41, 4, 2);
+    ctx.fill();
+    ctx.fillStyle = '#ffe066';
+    roundRect(ctx, x + 31, y + h - 8, (w - 41) * cs.frac, 4, 2);
+    ctx.fill();
+  }
+
+  // 成就解鎖通知
+  function drawNotices(ctx, game) {
+    const n = game.notices && game.notices.find(x => x.t >= 0);
+    if (!n) return;
+    const k = Math.min(1, n.t * 5, (n.life - n.t) * 4);
+    const y = 300 - (1 - Math.min(1, n.t * 5)) * 30;
+    ctx.globalAlpha = Math.max(0, k);
+    const label = `${n.a.icon} 成就解鎖：${n.a.name}`;
+    const sub = `獲得稱號「${n.a.title}」${n.a.reward ? `　🎫 +${n.a.reward}` : ''}`;
+    ctx.font = `bold 18px ${TEXT_FONT}`;
+    const w = Math.min(C.W - 30, Math.max(ctx.measureText(label).width, ctx.measureText(sub).width * 0.8) + 40);
+    ctx.fillStyle = 'rgba(60,30,0,0.88)';
+    roundRect(ctx, 270 - w / 2, y, w, 56, 16);
+    ctx.fill();
+    ctx.strokeStyle = '#ffd45c';
+    ctx.lineWidth = 3;
+    ctx.stroke();
+    text(ctx, label, 270, y + 19, 18, '#ffe066');
+    text(ctx, sub, 270, y + 40, 14, '#fff');
+    ctx.globalAlpha = 1;
   }
 
   function drawBowl(ctx, game, time) {
@@ -640,6 +847,14 @@ FF.Render = (() => {
   }
 
   function drawItems(ctx, game, time) {
+    if (game.challenge) {
+      // 挑戰模式不能用道具
+      ctx.fillStyle = 'rgba(0,0,0,0.3)';
+      roundRect(ctx, 80, 890, 380, 44, 22);
+      ctx.fill();
+      text(ctx, `${game.challenge.icon} 紀念日挑戰：不能用道具，靠實力！`, 270, 912, 15, '#ffe9cf');
+      return;
+    }
     for (const b of FF.LAYOUT.items) {
       const it = FF.ITEMS.find(i => i.id === b.id);
       const n = game.save.items[b.id] || 0;
@@ -873,7 +1088,20 @@ FF.Render = (() => {
     ctx.globalAlpha = k;
     const y = 470;
     ctx.fillStyle = 'rgba(60,20,5,0.7)';
-    const lines = b.sub.split('\n');
+    // 太長的副標逐字換行，避免超出畫面
+    ctx.font = `bold 19px ${TEXT_FONT}`;
+    const lines = [];
+    for (const raw of b.sub.split('\n')) {
+      let cur = '';
+      for (const ch of raw) {
+        // 標點不放行首（寧可讓上一行稍微超出一個字）
+        if (ctx.measureText(cur + ch).width > C.W - 40 && cur && !'，。、；：！？）」』…'.includes(ch)) {
+          lines.push(cur);
+          cur = ch;
+        } else cur += ch;
+      }
+      lines.push(cur);
+    }
     const h = 70 + lines.length * 26;
     ctx.fillRect(0, y - 50, C.W, h);
     const sc = 0.6 + 0.4 * inK;
@@ -925,7 +1153,7 @@ FF.Render = (() => {
     FF.Scenes.drawBackground(ctx, game.venue, time, game);
     drawGF(ctx, game, time);
     drawTable(ctx, game.tableNo);
-    drawPot(ctx, time, game.fx.spicy > 0, game.fx.soup);
+    drawPot(ctx, time, game.fx.spicy > 0, game.fx.soup, game.broth);
 
     // 女友瞄準 / 指定 的提示
     const g = game.gf;
@@ -1005,6 +1233,7 @@ FF.Render = (() => {
     drawItems(ctx, game, time);
     FF.Scenes.drawEvents(ctx, game, time);
     drawBanner(ctx, game);
+    drawNotices(ctx, game);
     ctx.restore();
 
     if (game.flash > 0) {
@@ -1036,9 +1265,9 @@ FF.Render = (() => {
     }
     const venue = FF.VENUES.find(v => v.id === FF.Save.data.venue) || FF.VENUES[0];
     FF.Scenes.drawBackground(ctx, venue, time, null);
-    drawGF(ctx, null, time);
+    drawGF(ctx, null, time, FF.personaById(FF.Save.data.gfType));
     drawTable(ctx);
-    drawPot(ctx, time, false, 0);
+    drawPot(ctx, time, false, 0, FF.brothById(FF.Save.data.broth));
     for (const f of demoFoods) {
       const a = f.a + time * 0.15;
       f.x = C.pot.x + Math.cos(a) * f.r;

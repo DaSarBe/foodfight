@@ -16,7 +16,7 @@ FF.util = {
 };
 
 FF.Game = class Game {
-  constructor(save, hooks) {
+  constructor(save, hooks, opts = {}) {
     const C = FF.CONFIG;
     const { pick } = FF.util;
     this.save = save;
@@ -55,7 +55,7 @@ FF.Game = class Game {
     this.hintTimer = 6;
     this.favorite = pick(FF.FOODS);
     this.venue = FF.VENUES.find(v => v.id === save.venue) || FF.VENUES[0];
-    this.stats = { eaten: 0, perfect: 0, raw: 0, dodges: 0, knocked: 0, gfAte: 0, steals: 0, bestCombo: 0 };
+    this.stats = { eaten: 0, perfect: 0, raw: 0, dodges: 0, knocked: 0, gfAte: 0, steals: 0, bestCombo: 0, rareEaten: 0 };
     this.strikesSeen = 0;
     this.firstStrikeDone = false;
     this.firstStrikeAt = 8;
@@ -71,17 +71,21 @@ FF.Game = class Game {
     this.dodgeFlash = 0;
     this.shockwaves = [];
     this.timers = []; // 跟著遊戲時間走的延遲動作（暫停時不會觸發）
+    this.initVariants(opts); // 她的模式、鍋底、紀念日挑戰（variants.js / challenge.js）
     this.initEvents();
     this.initSpecials();
+    this.initProgress();
 
     // 開局先放幾樣食物，熟度錯開
     for (let i = 0; i < 4; i++) this.spawnFood(this.randomFoodDef(), { t: i * 0.7, quiet: true });
-    this.say(pick(FF.LINES.start), 3, true);
-    this.showBanner('第 1 波', '搶在她之前，夾到「剛好」的食物！');
+    this.say(this.line('start'), 3, true);
+    if (this.challenge) this.showChallengeIntro();
+    else this.showBanner('第 1 波', '搶在她之前，夾到「剛好」的食物！');
   }
 
   // ---------- 工具 ----------
   randomFoodDef() {
+    if (this.rules && this.rules.rareOnly) return FF.util.pick(FF.RARE_FOODS);
     const total = FF.FOODS.reduce((s, f) => s + f.weight, 0);
     let r = Math.random() * total;
     for (const f of FF.FOODS) {
@@ -218,7 +222,7 @@ FF.Game = class Game {
     const { rand, clamp } = FF.util;
 
     this.t += dt;
-    const w = D.wave(this.t);
+    const w = D.wave(this.t) + this.waveBase;
     if (w !== this.wave) {
       this.wave = w;
       this.onNewWave();
@@ -229,8 +233,8 @@ FF.Game = class Game {
 
     // 飽足感與怒氣
     const warmup = this.t < 5 ? 0.3 : 1;
-    this.sat -= D.satDrain(w) * dt * warmup;
-    this.anger = Math.max(0, this.anger - D.angerDecay(w) * dt);
+    this.sat -= this.D.satDrain(w) * dt * warmup;
+    this.anger = Math.max(0, this.anger - this.D.angerDecay(w) * dt);
 
     // 下鍋
     this.spawnTimer -= dt;
@@ -242,9 +246,8 @@ FF.Game = class Game {
       this.spawnTimer = D.spawnInterval(w) * rand(0.7, 1.3) * fast;
     }
 
-    // 煮與漂動
-    const cookMul = (this.fx.spicy > 0 ? 1.8 : 1) * (this.fx.soup > 0 ? 0.5 : 1);
-    this.updateFoods(dt, cookMul);
+    // 煮與漂動（熟的速度依鍋底、辣鍋、加湯而定，見 variants.js cookRate）
+    this.updateFoods(dt);
 
     // 指定食物
     if (this.claim) {
@@ -266,6 +269,9 @@ FF.Game = class Game {
     this.updateGF(dt);
     this.updateEvents(dt);
     this.updateSpecials(dt);
+    this.updateChallenge(dt);
+    this.updateProgress(dt);
+    if (this.over) return;
 
     this.foods = this.foods.filter(f => f.state !== 'gone');
 
@@ -273,8 +279,8 @@ FF.Game = class Game {
     this.hintTimer -= dt;
     if (this.hintTimer <= 0) {
       this.hintTimer = 6;
-      if (this.ult) { /* 放大招時不插嘴 */ } else if (this.anger > 70) this.say(FF.util.pick(FF.LINES.angry), 2.4, true);
-      else if (this.sat < this.mods.satMax * 0.25) this.say(FF.util.pick(FF.LINES.hungry));
+      if (this.ult) { /* 放大招時不插嘴 */ } else if (this.anger > 70) this.say(this.line('angry'), 2.4, true);
+      else if (this.sat < this.mods.satMax * 0.25) this.say(this.line('hungry'));
     }
 
     this.updateFx(dt);
@@ -315,7 +321,7 @@ FF.Game = class Game {
     for (const f of this.foods) f.pop = Math.max(0, f.pop - dt);
   }
 
-  updateFoods(dt, cookMul) {
+  updateFoods(dt) {
     const P = FF.CONFIG.pot;
     const pot = this.potFoods();
     for (const f of pot) {
@@ -326,12 +332,13 @@ FF.Game = class Game {
         f.y = FF.util.lerp(f.fly.sy, f.fly.ty, k) - Math.sin(Math.PI * k) * 90;
         if (k >= 1) {
           f.fly = null;
+          f.side = null; // 鴛鴦鍋：落地後重新決定在哪一半
           this.burst(f.x, f.y, 10, ['#ffd18a', '#fff3d6'], { speed: 160, size: 5, life: 0.4 });
           FF.Audio.play('splash');
         }
         continue;
       }
-      f.t += dt * cookMul;
+      f.t += dt * this.cookRate(f);
       if (this.stage(f) === 'gone') {
         f.state = 'gone';
         this.burst(f.x, f.y, 6, ['#777', '#999', '#555'], { speed: 60, size: 9, life: 0.7, gravity: -80 });
@@ -373,6 +380,7 @@ FF.Game = class Game {
         }
       }
     }
+    if (this.broth.split) pot.forEach(f => this.brothConstrain(f));
   }
 
   onNewWave() {
@@ -388,7 +396,7 @@ FF.Game = class Game {
     };
     const sub = (subs[w] || '她的手越來越快了！') + `\n${rare.emoji} ${rare.name}下鍋了！`;
     this.showBanner(`第 ${w} 波`, sub);
-    this.say(pick(FF.LINES.rare), 2.4, true);
+    this.say(this.line('rare'), 2.4, true);
   }
 
   triggerEvent() {
@@ -405,16 +413,16 @@ FF.Game = class Game {
       cands.sort((a, b) => (b.def.id === this.favorite.id) - (a.def.id === this.favorite.id) || b.def.score - a.def.score);
       const f = cands[0];
       this.claim = { id: f.id, timer: 7 };
-      this.say(pick(FF.LINES.claim), 2.6, true);
+      this.say(this.line('claim'), 2.6, true);
       this.float(f.x, f.y - 40, '她的！', '#ff6fa5', 24);
       FF.Audio.play('angry');
     } else if (ev === 'steam') {
       this.fx.steam = this.fxMax.steam;
-      this.say(pick(FF.LINES.steam), 2.4, true);
+      this.say(this.line('steam'), 2.4, true);
     } else if (ev === 'spicy') {
       this.fx.spicy = this.fxMax.spicy;
-      this.say(pick(FF.LINES.spicy), 2.4, true);
-      this.float(270, 500, '🌶️ 辣鍋！熟得更快', '#ff5a3c', 30, 1.4);
+      this.say(this.line('spicy'), 2.4, true);
+      this.float(270, 500, this.broth.spicyText, '#ff5a3c', this.broth.spicyText.length > 10 ? 24 : 30, 1.6);
     }
   }
 
@@ -479,7 +487,7 @@ FF.Game = class Game {
     if (contested) {
       g.state = 'return';
       g.target = null;
-      this.say(pick(FF.LINES.steal), 2.2, true);
+      this.say(this.line('steal'), 2.2, true);
     }
     // 大絕招「筷子連打」已就緒：這一塊要連打
     const u = this.ult;
@@ -491,7 +499,7 @@ FF.Game = class Game {
     const canStrike = ['idle', 'reach', 'hover', 'return'].includes(g.state) && this.fx.chopsticks <= 0 && !this.distracted();
     if (!canStrike) return;
     const forced = !this.firstStrikeDone && this.t >= this.firstStrikeAt;
-    let chance = FF.DIFF.strikeChance(this.wave) + (this.anger / 100) * 0.25 - this.mods.gripChance;
+    let chance = this.D.strikeChance(this.wave) + (this.anger / 100) * 0.25 - this.mods.gripChance;
     if (contested) chance += 0.15;
     if (p.carry.claimed) chance += 0.3;
     if (this.t < this.firstStrikeAt) chance = 0;
@@ -593,7 +601,7 @@ FF.Game = class Game {
     this.combo = 0;
     this.dodgeStreak = 0;
     this.anger -= 3;
-    this.say(pick(FF.LINES.strike), 2.2, true);
+    this.say(this.line('strike'), 2.2, true);
     p.state = 'return';
     p.carry = null;
     this.gf.state = 'return';
@@ -644,7 +652,7 @@ FF.Game = class Game {
       this.burst(pos.x, pos.y, 3, ['#fff'], { speed: 160, size: 22, life: 0.6, gravity: -50, emoji: '✨' });
       this.stats.dodges++;
       this.anger += 3 * this.mods.angerMul;
-      if (!s.combo || s.phase === 'dodged') this.say(pick(FF.LINES.dodged), 2.0, true);
+      if (!s.combo || s.phase === 'dodged') this.say(this.line('dodged'), 2.0, true);
     } else if (s && s.phase === 'gap') {
       // 連打的空檔：剛閃完那一下的連點不算，之後太早點會手抖
       if (s.grace <= 0 && !c.flinch) {
@@ -676,19 +684,19 @@ FF.Game = class Game {
       this.stats.raw++;
       this.float(B.x, B.y - 60, '生的！肚子痛 -5', '#8fd0ff', 26);
       FF.Audio.play('raw');
-      if (Math.random() < 0.6) this.say(pick(FF.LINES.raw));
+      if (Math.random() < 0.6) this.say(this.line('raw'));
     } else if (st === 'perfect') {
       this.combo++;
       this.stats.perfect++;
       this.stats.bestCombo = Math.max(this.stats.bestCombo, this.combo);
       const mult = 1 + 0.1 * Math.min(this.combo, 10);
-      sc = Math.round(d.score * mult);
+      sc = Math.round(d.score * mult * this.broth.score);
       sat = d.sat;
       this.float(B.x, B.y - 60, `完美！+${sc}`, '#ffe066', d.rare ? 36 : 30);
       this.burst(B.x, B.y - 20, d.rare ? 24 : 10, ['#ffe066', '#fff', '#7dffb0'], { speed: 240, size: 6, life: 0.6 });
       FF.Audio.play('perfect');
     } else {
-      sc = Math.round(d.score * 0.3);
+      sc = Math.round(d.score * 0.3 * this.broth.score);
       sat = d.sat * 0.5;
       this.combo = 0;
       this.float(B.x, B.y - 60, `煮太老了 +${sc}`, '#d9a86c', 24);
@@ -705,7 +713,7 @@ FF.Game = class Game {
     if (c.claimed && this.claim && this.claim.id === f.id) {
       a += 18;
       this.claim = null;
-      this.say(pick(FF.LINES.claimStolen), 2.4, true);
+      this.say(this.line('claimStolen'), 2.4, true);
     }
     if (d.id === this.favorite.id) a += 3;
     if (d.rare) a += 6;
@@ -715,6 +723,8 @@ FF.Game = class Game {
       this.shake = Math.max(this.shake, 5);
     }
     this.stats.eaten++;
+    if (d.rare && st !== 'raw') this.stats.rareEaten++;
+    this.challengeOnEat(f, st);
     if (c.strike && c.strike.combo && this.ult) this.endUlt('cleared');
     this.bowl.push(d.emoji);
     if (this.bowl.length > 3) this.bowl.shift();
@@ -753,7 +763,7 @@ FF.Game = class Game {
     const D = FF.DIFF;
     const { rand, pick } = FF.util;
     const rest = { x: 375, y: 245 };
-    const reach = D.gfReach(w);
+    const reach = this.D.gfReach(w);
     const phone = this.distracted();
 
     if (phone && ['reach', 'hover'].includes(g.state)) {
@@ -772,7 +782,7 @@ FF.Game = class Game {
             g.target = f;
             g.state = 'reach';
             g.start = { x: g.tip.x, y: g.tip.y };
-            g.fake = Math.random() < D.fakeChance(w);
+            g.fake = Math.random() < this.D.fakeChance(w);
             g.faked = false;
           } else {
             g.timer = 0.4;
@@ -795,7 +805,7 @@ FF.Game = class Game {
             const alt = this.chooseTarget(f);
             if (alt) {
               g.target = alt;
-              if (Math.random() < 0.5) this.say(pick(FF.LINES.fake), 1.6);
+              if (Math.random() < 0.5) this.say(this.line('fake'), 1.6);
             }
           }
         }
@@ -848,13 +858,13 @@ FF.Game = class Game {
         this.moveToward(g.tip, rest, 900 * dt);
         if (g.chew <= 0) {
           g.state = 'idle';
-          g.timer = D.gfThink(w) * rand(0.6, 1.2);
+          g.timer = this.D.gfThink(w) * rand(0.6, 1.2);
         }
         break;
       case 'return':
         if (this.moveToward(g.tip, rest, Math.max(reach, 900) * dt)) {
           g.state = 'idle';
-          g.timer = D.gfThink(w) * rand(0.5, 1.1);
+          g.timer = this.D.gfThink(w) * rand(0.5, 1.1);
         }
         break;
       case 'strikeAim':
@@ -907,7 +917,7 @@ FF.Game = class Game {
     f.state = 'gone';
     g.food = null;
     g.state = 'chew';
-    g.chew = 0.55;
+    g.chew = 0.55 * this.pm.chew;
     let a = 5;
     const fav = f.def.id === this.favorite.id;
     if (fav) a = 12;
@@ -916,13 +926,13 @@ FF.Game = class Game {
       a += 8;
       this.claim = null;
     }
-    this.anger -= a;
+    this.anger -= a * this.pm.calm;
     this.stats.gfAte++;
     FF.Audio.play('gfEat');
     const G = FF.CONFIG.gf;
     this.burst(G.x + 40, G.y - 20, fav ? 5 : 2, ['#fff'], { speed: 80, size: 18, life: 0.9, gravity: -60, emoji: '💗' });
-    if (fav) this.say(pick(FF.LINES.eatFav), 2.2, true);
-    else if (Math.random() < 0.4) this.say(pick(FF.LINES.eat), 1.8);
+    if (fav) this.say(this.line('eatFav'), 2.2, true);
+    else if (Math.random() < 0.4) this.say(this.line('eat'), 1.8);
   }
 
   // ---------- 輸入 ----------
@@ -971,6 +981,11 @@ FF.Game = class Game {
     const item = FF.ITEMS.find(i => i.id === id);
     if (!item || this.itemCd > 0) return;
     const b = FF.LAYOUT.items.find(i => i.id === id);
+    if (this.challenge) {
+      this.float(270, b.y - 50, '紀念日挑戰不能用道具喔', '#ffb4b4', 20, 1.1);
+      FF.Audio.play('error');
+      return;
+    }
     if ((this.save.items[id] || 0) <= 0) {
       this.float(b.x, b.y - 50, '沒有了，去商店買', '#ffb4b4', 20, 1.1);
       FF.Audio.play('error');
@@ -989,8 +1004,8 @@ FF.Game = class Game {
         cancelStrike();
         break;
       case 'cute':
-        this.anger = Math.max(0, this.anger - 35);
-        this.say(pick(FF.LINES.cute), 2.4, true);
+        this.anger = Math.max(0, this.anger - 35 * this.pm.cute);
+        this.say(this.line('cute'), 2.4, true);
         // 撒嬌可以打斷還沒出手的大絕招
         if (this.ult && ['charge', 'windup', 'armed'].includes(this.ult.phase)) this.endUlt('cute');
         this.burst(FF.CONFIG.gf.x, FF.CONFIG.gf.y, 8, ['#fff'], { speed: 160, size: 20, life: 1, gravity: -40, emoji: '💕' });
@@ -1000,68 +1015,92 @@ FF.Game = class Game {
           if (this.stage(f) === 'over') f.t = f.def.raw + 0.05;
         }
         this.fx.soup = item.dur;
-        this.say(pick(FF.LINES.soup), 2, true);
+        this.say(this.line('soup'), 2, true);
         this.burst(270, 500, 20, ['#ffd18a', '#fff3d6'], { speed: 260, size: 7, life: 0.6 });
         break;
       case 'phone':
         this.fx.phone = item.dur;
-        this.say(pick(FF.LINES.phone), 2.6, true);
+        this.say(this.line('phone'), 2.6, true);
         cancelStrike();
         break;
     }
   }
 
   // ---------- 結束 ----------
+  // reason：anger / hunger / quit；紀念日挑戰另有 win（過關）與 fail（時間到、偷吃太多等，原因在 this.failWhy）
   end(reason) {
     if (this.over) return;
     this.over = true;
     this.overTimer = reason === 'quit' ? 0 : 1.2;
     const T = FF.TICKETS;
+    const ch = this.challenge;
     const secs = Math.floor(this.t);
+    const chMul = ch ? FF.CHALLENGE_TICKET_MUL : 1;
     const parts = {
-      time: Math.floor(secs * T.perSecond),
-      score: Math.floor(this.score * T.perScore),
-      wave: (this.wave - 1) * T.perWave,
+      time: Math.floor(secs * T.perSecond * chMul),
+      score: Math.floor(this.score * T.perScore * chMul),
+      wave: Math.floor((this.wave - 1 - this.waveBase) * T.perWave * chMul),
     };
     const base = parts.time + parts.score + parts.wave;
     const bonus = Math.floor(base * (this.mods.ticketMul - 1));
-    const venueBonus = Math.floor(base * this.venue.bonus);
-    const total = Math.max(T.min, base + bonus + venueBonus);
+    const venueBonus = ch ? 0 : Math.floor(base * this.venue.bonus);
+    const gfBonus = ch ? 0 : Math.floor(base * (this.persona.ticketBonus || 0));
+    let total = Math.max(T.min, base + bonus + venueBonus + gfBonus);
     const s = this.save;
     const best = s.best;
-    const newRecord = this.score > best.score;
-    const prevWave = best.wave;
-    const unlocked = FF.VENUES.filter(v => v.unlockWave > prevWave && v.unlockWave <= this.wave);
-    best.score = Math.max(best.score, this.score);
-    best.time = Math.max(best.time, secs);
-    best.wave = Math.max(best.wave, this.wave);
-    s.tickets += total;
+    let newRecord = false;
+    let unlocked = [];
+    if (!ch) {
+      // 挑戰模式的難度跟一般模式不同，不算進最高紀錄與場地解鎖
+      newRecord = this.score > best.score;
+      const prevWave = best.wave;
+      unlocked = FF.VENUES.filter(v => v.unlockWave > prevWave && v.unlockWave <= this.wave);
+      best.score = Math.max(best.score, this.score);
+      best.time = Math.max(best.time, secs);
+      best.wave = Math.max(best.wave, this.wave);
+    }
     s.runs++;
-    FF.Save.persist();
-    const E = FF.ENDINGS[reason];
-    const G = FF.GRADES.find(g => secs >= g.minTime) || FF.GRADES[FF.GRADES.length - 1];
     this.result = {
       reason,
-      title: E.title,
-      line: FF.util.pick(E.lines),
+      mode: ch ? 'challenge' : 'normal',
       score: this.score,
       time: secs,
       wave: this.wave,
       stats: { ...this.stats },
-      tickets: { ...parts, bonus, venueBonus, venueName: this.venue.name, total, min: total === T.min && base + bonus + venueBonus < T.min },
+      tickets: { ...parts, bonus, venueBonus, venueName: this.venue.name, gfBonus, gfName: this.persona.name, challenge: 0, min: total === T.min && base + bonus + venueBonus + gfBonus < T.min },
       unlocked,
       venue: this.venue,
+      persona: this.persona,
+      broth: this.broth,
       newRecord,
     };
     const r = this.result;
-    r.grade = { grade: G.grade, title: G.title, stars: G.stars, color: G.color, comment: FF.util.pick(G[reason]) };
-    r.quips = FF.QUIPS.map(q => q(r)).filter(Boolean).slice(0, 2);
+    if (ch) {
+      this.finishChallenge(reason, r); // 標題、評語、首次過關獎勵（challenge.js）
+      total += r.tickets.challenge;
+    } else {
+      const E = FF.ENDINGS[reason];
+      const G = FF.GRADES.find(g => secs >= g.minTime) || FF.GRADES[FF.GRADES.length - 1];
+      r.title = E.title;
+      r.line = FF.util.pick(E.lines);
+      r.grade = { grade: G.grade, title: G.title, stars: G.stars, color: G.color, comment: FF.util.pick(G[reason]) };
+      r.quips = FF.QUIPS.map(q => q(r)).filter(Boolean).slice(0, 2);
+    }
+    r.tickets.total = total;
+    s.tickets += total;
+    r.progress = FF.Progress.commitRun(this, r); // 終身統計、每日任務、成就（progress.js）
+    FF.Save.persist();
     if (this.ult) this.endUlt('silent');
-    if (reason !== 'quit') {
+    const bye = ch ? FF.util.pick(reason === 'win' ? FF.LINES.chWin : FF.LINES.chLose) : r.line.replace(/^「|」.*$/g, '');
+    if (reason === 'win') {
+      FF.Audio.play('hero');
+      FF.Haptics.vibrate('comboClear');
+      this.say(bye, 9, true);
+    } else if (reason !== 'quit') {
       FF.Audio.play('gameover');
       FF.Haptics.vibrate('gameover');
       this.shake = 10;
-      this.say(this.result.line.replace(/^「|」.*$/g, ''), 9, true);
+      this.say(bye, 9, true);
     }
   }
 };

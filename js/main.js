@@ -36,10 +36,15 @@
 
   const save = FF.Save.load();
   FF.Audio.setMuted(save.muted);
+  FF.Music.setEnabled(save.music);
   FF.Haptics.setEnabled(save.vibrate);
+  FF.Progress.ensureDaily();
 
   const app = {
-    requestStart() {
+    pendingOpts: {},
+    // opts：{ challenge: 關卡 id }，沒有就是一般模式（場地、她的模式、鍋底沿用上次的選擇）
+    requestStart(opts = {}) {
+      app.pendingOpts = opts;
       if (!FF.Save.data.seenTutorial) {
         FF.Save.data.seenTutorial = true;
         FF.Save.persist();
@@ -47,16 +52,16 @@
         FF.UI.show('howto');
         return;
       }
-      app.startGame();
+      app.startGame(opts);
     },
-    startGame() {
+    startGame(opts = {}) {
       game = new FF.Game(FF.Save.data, {
         onGameOver: res => {
           playing = false;
           FF.UI.showResult(res);
         },
         onPause: () => app.pause(),
-      });
+      }, opts);
       playing = true;
       FF.UI.show(null);
     },
@@ -125,8 +130,14 @@
     if (n >= 1 && n <= FF.ITEMS.length) game.useItem(FF.ITEMS[n - 1].id);
   });
 
+  // 任何互動都可以啟動音訊（瀏覽器規定 AudioContext 要在使用者互動後才能開始）
+  document.addEventListener('pointerdown', () => FF.Audio.unlock());
+
+  // 分頁隱藏：暫停遊戲、停掉音樂與音效；回來時恢復音訊（遊戲維持暫停）
   document.addEventListener('visibilitychange', () => {
     if (document.hidden) app.pause();
+    FF.Audio.setHidden(document.hidden);
+    FF.Music.setHidden(document.hidden);
   });
 
   // 主迴圈
@@ -143,10 +154,13 @@
         game.update(step);
         total -= step;
       }
+      // 背景音樂：波數越高越快；怒氣很高、撞車、大絕招時轉緊張
+      FF.Music.setIntensity(game.wave, !game.over && (game.anger >= 80 || !!game.crash || !!game.ult));
     }
     ctx.setTransform(scale * dpr, 0, 0, scale * dpr, 0, 0);
     ctx.clearRect(0, 0, C.W, C.H);
-    if (game && (playing || FF.UI.current === 'result' || FF.UI.current === 'pause')) {
+    const cur = FF.UI.current;
+    if (game && (playing || cur === 'result' || cur === 'pause' || cur === 'sharebox' || (cur === 'howto' && game.paused) || (cur === 'settings' && game.paused))) {
       FF.Render.drawGame(ctx, game, time);
     } else {
       FF.Render.drawMenuBg(ctx, time);

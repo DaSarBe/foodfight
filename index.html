@@ -13,17 +13,97 @@
 
     <section id="menu" class="screen">
       <div class="panel menu-panel">
+        <button class="icon-btn" id="btn-settings" aria-label="設定">⚙️</button>
         <div class="logo">🍲</div>
         <h1>搶火鍋大作戰</h1>
         <p class="tagline">跟女朋友的火鍋攻防戰</p>
-        <div class="tickets-line">🎫 飯票 <b id="menu-tickets">0</b></div>
+        <div class="menu-meta">
+          <span class="title-chip" id="menu-title">🏷️ 火鍋菜鳥</span>
+          <span class="tickets-line">🎫 <b id="menu-tickets">0</b></span>
+        </div>
+        <button class="setup-card" id="btn-setup" aria-label="更換場地、她的模式、鍋底">
+          <span class="chip" id="menu-venue">🏙️ 都市街邊火鍋</span>
+          <span class="chip" id="menu-gf">😊 日常模式</span>
+          <span class="chip" id="menu-broth">🍲 原味</span>
+          <span class="setup-edit">更換 ›</span>
+        </button>
         <button class="btn primary" id="btn-start">開動！</button>
-        <button class="btn venue-btn" id="btn-venue">📍 場地：<b id="menu-venue">都市街邊火鍋</b></button>
-        <button class="btn" id="btn-shop">🛒 商店</button>
-        <button class="btn" id="btn-howto">📖 玩法說明</button>
+        <div class="menu-grid">
+          <button class="btn tile" id="btn-missions">🎯 每日任務<small id="menu-missions">0/3</small><i class="dot hidden" id="dot-missions"></i></button>
+          <button class="btn tile" id="btn-challenge">💝 紀念日挑戰<small id="menu-challenge">0/5</small><i class="dot hidden" id="dot-challenge"></i></button>
+          <button class="btn tile" id="btn-achieve">🏆 成就<small id="menu-achieve">0/0</small></button>
+          <button class="btn tile" id="btn-shop">🛒 商店<small>升級・道具</small></button>
+        </div>
+        <button class="btn small ghost" id="btn-howto">📖 玩法說明</button>
         <div class="best" id="menu-best"></div>
-        <button class="icon-btn" id="btn-mute" aria-label="靜音">🔊</button>
-        <button class="icon-btn second" id="btn-vibrate" aria-label="震動">📳</button>
+      </div>
+    </section>
+
+    <section id="setup" class="screen hidden">
+      <div class="panel shop-panel">
+        <div class="shop-head">
+          <button class="btn small" id="btn-setup-back">← 返回</button>
+          <h2>🍲 開局準備</h2>
+          <div class="tickets-pill">🎫 <b id="setup-tickets">0</b></div>
+        </div>
+        <div class="tabs" role="tablist">
+          <button class="tab" data-tab="gf">💕 她的模式</button>
+          <button class="tab" data-tab="broth">🍲 鍋底</button>
+          <button class="tab" data-tab="venue">📍 場地</button>
+        </div>
+        <p class="venue-tip" id="setup-tip"></p>
+        <div class="shop-body scroll" id="setup-list"></div>
+        <button class="btn primary" id="btn-setup-start">開動！</button>
+      </div>
+    </section>
+
+    <section id="settings" class="screen hidden">
+      <div class="panel">
+        <h2>⚙️ 設定</h2>
+        <div class="toggles">
+          <button class="toggle" id="set-sfx"><span>🔊 音效</span><b>開</b></button>
+          <button class="toggle" id="set-music"><span>🎵 背景音樂</span><b>開</b></button>
+          <button class="toggle" id="set-vibrate"><span>📳 震動</span><b>開</b></button>
+        </div>
+        <p class="venue-tip">設定會自動存檔。震動在不支援的裝置（例如 iPhone Safari）上會自動略過。</p>
+        <button class="btn primary" id="btn-settings-ok">好了</button>
+      </div>
+    </section>
+
+    <section id="missions" class="screen hidden">
+      <div class="panel shop-panel">
+        <div class="shop-head">
+          <button class="btn small" id="btn-missions-back">← 返回</button>
+          <h2>🎯 每日任務</h2>
+          <div class="tickets-pill">🎫 <b id="missions-tickets">0</b></div>
+        </div>
+        <p class="venue-tip" id="missions-tip">每天換 3 個新任務，進度跨局累計。完成記得回來領飯票！</p>
+        <div class="shop-body scroll" id="missions-list"></div>
+        <button class="btn primary" id="btn-missions-start">去解任務！</button>
+      </div>
+    </section>
+
+    <section id="achieve" class="screen hidden">
+      <div class="panel shop-panel">
+        <div class="shop-head">
+          <button class="btn small" id="btn-achieve-back">← 返回</button>
+          <h2>🏆 成就</h2>
+          <div class="tickets-pill"><b id="achieve-count">0/0</b></div>
+        </div>
+        <p class="venue-tip">每個成就附一個稱號，點「裝備」就會顯示在主選單、結算和分享圖上。目前稱號：<b id="achieve-title">火鍋菜鳥</b></p>
+        <div class="shop-body scroll" id="achieve-list"></div>
+      </div>
+    </section>
+
+    <section id="challenges" class="screen hidden">
+      <div class="panel shop-panel">
+        <div class="shop-head">
+          <button class="btn small" id="btn-challenge-back">← 返回</button>
+          <h2>💝 紀念日挑戰</h2>
+          <div class="tickets-pill">🎫 <b id="challenge-tickets">0</b></div>
+        </div>
+        <p class="venue-tip">特殊規則的關卡，過關才會解鎖下一關。首次過關有大量飯票！挑戰中的場地、鍋底、她的模式是固定的，也不能用道具。</p>
+        <div class="shop-body scroll" id="challenge-list"></div>
       </div>
     </section>
 
@@ -44,8 +124,14 @@
           <li><span class="big">👀</span><span>窗外偶爾會發生意外，她轉頭去看的時候不會搶也不會打你，趁機多夾幾塊！</span></li>
           <li><span class="big">🚗</span><span>有車撞進餐廳時，快按「帶她換桌！」。救到她會大大消氣，愣住的話她會超生氣，鍋子還會翻一半。</span></li>
           <li><span class="big">📍</span><span>撐到越後面的波數會解鎖新場地，每個場地都有不同的推銷、意外和撞進來的車。</span></li>
-          <li><span class="big">🎫</span><span>每局結束都能拿到飯票，去商店升級能力、買道具。</span></li>
+          <li><span class="big">💕</span><span><b>她的模式</b>：開局前在主選單的「更換」選她今天的個性。吃貨模式搶超兇但不太生氣；傲嬌模式很容易爆氣，但餵她、撒嬌效果加倍；戰鬥模式超愛打你筷子、大招放不停，但搶食慢。</span></li>
+          <li><span class="big">🍲</span><span><b>鍋底</b>：牛奶鍋熟得慢、適合新手；麻辣鍋熟得快、分數加成；鴛鴦鍋左邊熟得快、右邊熟得慢，食物不會越過中間隔板。遇到「辣鍋」干擾時各種鍋底都會熟得更快。</span></li>
+          <li><span class="big">🎯</span><span><b>每日任務</b>：每天 3 個，進度跨局累計（標「單局」的要一局內達成），完成後回任務頁領飯票，三個都完成還有額外獎勵。</span></li>
+          <li><span class="big">🏆</span><span><b>成就</b>：累計各種紀錄解鎖，每個成就附一個稱號可以裝備，有些還送飯票。</span></li>
+          <li><span class="big">💝</span><span><b>紀念日挑戰</b>：特殊規則的關卡（不能用道具），達成目標就過關，首次過關送大量飯票並解鎖下一關。</span></li>
+          <li><span class="big">🎫</span><span>每局結束都能拿到飯票，去商店升級能力、買道具，也可以解鎖她的新模式與鍋底。結算畫面可以「分享成績」產生成績圖。</span></li>
           <li><span class="big">⌨️</span><span>電腦：滑鼠點擊；空白鍵閃避、F 餵她、1～4 使用道具、Esc 或 P 暫停；撞車時空白鍵或 Enter 帶她換桌；服務員推銷時 N 拒絕、B 購買。</span></li>
+          <li><span class="big">⚙️</span><span>音效、背景音樂、震動可以在主選單右上角的 ⚙️ 或暫停選單分開開關。</span></li>
         </ul>
         <button class="btn primary" id="btn-howto-ok">知道了！</button>
       </div>
@@ -68,26 +154,16 @@
       </div>
     </section>
 
-    <section id="venues" class="screen hidden">
-      <div class="panel shop-panel">
-        <div class="shop-head">
-          <button class="btn small" id="btn-venue-back">← 返回</button>
-          <h2>📍 選擇場地</h2>
-          <span></span>
-        </div>
-        <p class="venue-tip">撐到越後面的波數，就能解鎖新場地。越難搞的場地，飯票加成越高！</p>
-        <div class="shop-body scroll" id="venue-list"></div>
-        <button class="btn primary" id="btn-venue-start">開動！</button>
-      </div>
-    </section>
-
     <section id="pause" class="screen hidden">
       <div class="panel">
         <h2>⏸ 暫停中</h2>
         <button class="btn primary" id="btn-resume">繼續吃</button>
+        <div class="toggle-row">
+          <button class="mini-toggle" id="pause-sfx">🔊<span>音效</span></button>
+          <button class="mini-toggle" id="pause-music">🎵<span>音樂</span></button>
+          <button class="mini-toggle" id="pause-vibrate">📳<span>震動</span></button>
+        </div>
         <button class="btn" id="btn-pause-howto">📖 玩法說明</button>
-        <button class="btn" id="btn-pause-mute">🔊 音效：開</button>
-        <button class="btn" id="btn-pause-vibrate">📳 震動：開</button>
         <button class="btn danger" id="btn-quit">結帳走人（結束這局）</button>
       </div>
     </section>
@@ -100,10 +176,23 @@
         <ul class="quips" id="res-quips"></ul>
         <div class="res-stats" id="res-stats"></div>
         <div class="unlock hidden" id="res-unlock"></div>
+        <div class="res-progress hidden" id="res-progress"></div>
         <div class="res-tickets" id="res-tickets"></div>
         <button class="btn primary" id="btn-again">再來一局</button>
-        <button class="btn" id="btn-res-shop">🛒 去商店</button>
-        <button class="btn" id="btn-res-menu">主選單</button>
+        <div class="btn-row">
+          <button class="btn" id="btn-share">📸 分享成績</button>
+          <button class="btn" id="btn-res-shop">🛒 商店</button>
+          <button class="btn" id="btn-res-menu">🏠 主選單</button>
+        </div>
+      </div>
+    </section>
+
+    <section id="sharebox" class="screen hidden">
+      <div class="panel share-panel">
+        <h2>📸 成績圖</h2>
+        <div class="share-preview"><img id="share-img" alt="成績圖預覽"></div>
+        <button class="btn primary" id="btn-share-go">分享 / 存圖</button>
+        <button class="btn small" id="btn-share-back">← 返回結算</button>
       </div>
     </section>
 
@@ -112,14 +201,21 @@
 
   <script src="js/config.js"></script>
   <script src="js/venues.js"></script>
+  <script src="js/content.js"></script>
   <script src="js/save.js"></script>
   <script src="js/audio.js"></script>
+  <script src="js/music.js"></script>
   <script src="js/haptics.js"></script>
   <script src="js/game.js"></script>
+  <script src="js/variants.js"></script>
+  <script src="js/challenge.js"></script>
+  <script src="js/progress.js"></script>
   <script src="js/events.js"></script>
   <script src="js/specials.js"></script>
   <script src="js/render.js"></script>
   <script src="js/scenes.js"></script>
+  <script src="js/share.js"></script>
+  <script src="js/ui-panels.js"></script>
   <script src="js/ui.js"></script>
   <script src="js/main.js"></script>
 </body>

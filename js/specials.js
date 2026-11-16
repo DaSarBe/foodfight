@@ -8,6 +8,9 @@ Object.assign(FF.Game.prototype, {
     this.ultHot = 0;        // 怒氣連續超過門檻幾秒
     this.feedFatigue = 0;   // 連續餵食的疲乏度
     this.stats.fed = 0;
+    this.stats.fedFav = 0;
+    this.stats.fedRaw = 0;
+    this.stats.fedPerfect = 0;
     this.stats.ults = 0;
     this.stats.ultCleared = 0;
   },
@@ -24,15 +27,16 @@ Object.assign(FF.Game.prototype, {
       return;
     }
     this.ultCd -= dt;
-    // 怒氣在門檻上下晃動時不要整個歸零，慢慢退
-    this.ultHot = this.anger >= U.angerMin ? this.ultHot + dt : Math.max(0, this.ultHot - dt * 2);
+    // 怒氣在門檻上下晃動時不要整個歸零，慢慢退（門檻依她的模式不同）
+    this.ultHot = this.anger >= this.ultAngerMin ? this.ultHot + dt : Math.max(0, this.ultHot - dt * 2);
     const c = this.player.carry;
     const ready = this.ultCd <= 0 && this.ultHot >= U.firstCooldown && this.t >= U.minTime &&
       !this.waiter && !this.crash && !this.distracted() &&
       ['idle', 'return', 'chew', 'reach', 'hover'].includes(this.gf.state) && !(c && c.strike);
-    if (ready && Math.random() < U.chancePerSec * dt) {
+    if (ready && Math.random() < U.chancePerSec * this.pm.ult * dt) {
       const cands = this.sweepCandidates();
-      this.startUlt(cands.length >= 2 && Math.random() < 0.5 ? 'sweep' : 'combo');
+      const bias = this.persona.sweepBias == null ? 0.5 : this.persona.sweepBias;
+      this.startUlt(cands.length >= 2 && Math.random() < bias ? 'sweep' : 'combo');
     }
   },
 
@@ -69,13 +73,13 @@ Object.assign(FF.Game.prototype, {
       u.eaten = 0;
       u.title = '全鍋掃蕩';
       u.sub = '標記的食物要被她掃光了！快搶，或用 📱 🥺 打斷';
-      this.say(pick(FF.LINES.ultSweep), 2.4, true);
+      this.say(this.line('ultSweep'), 2.4, true);
     } else {
       u.phase = 'windup';
       u.hits = U.combo.hits(this.wave);
       u.title = '筷子連打';
       u.sub = `下一塊夾起來她會連打 ${u.hits} 下！每個 ❗ 都要點`;
-      this.say(pick(FF.LINES.ultCombo), 2.4, true);
+      this.say(this.line('ultCombo'), 2.4, true);
     }
     FF.Audio.play('ult');
     FF.Haptics.vibrate('ult');
@@ -199,7 +203,7 @@ Object.assign(FF.Game.prototype, {
       }
     }
     this.ult = null;
-    this.ultCd = U.cooldown;
+    this.ultCd = U.cooldown * this.pm.ultCd;
     this.ultHot = 0;
     if (this.gf.state === 'ult') this.gf.state = 'return';
     if (result === 'silent') return;
@@ -208,7 +212,7 @@ Object.assign(FF.Game.prototype, {
     let cleared = false;
     switch (result) {
       case 'done':
-        line = pick(FF.LINES.ultSweepDone);
+        line = this.line('ultSweepDone');
         if (u.eaten <= 1) {
           cleared = true;
           this.float(270, 400, '掃蕩失敗！好料都被你搶走了', '#7dffb0', 24, 1.4);
@@ -216,32 +220,32 @@ Object.assign(FF.Game.prototype, {
         break;
       case 'cleared':
         cleared = true;
-        line = pick(FF.LINES.ultComboWin);
+        line = this.line('ultComboWin');
         this.score += U.combo.bonus;
         this.float(270, 600, `連打全閃！+${U.combo.bonus}`, '#7dffb0', 32, 1.5);
         FF.Audio.play('hero');
         FF.Haptics.vibrate('comboClear');
         break;
       case 'hit':
-        line = pick(FF.LINES.ultComboLose);
+        line = this.line('ultComboLose');
         break;
       case 'giveup':
         calm = U.interruptCalm;
-        line = pick(FF.LINES.ultComboGiveUp);
+        line = this.line('ultComboGiveUp');
         break;
       case 'fed':
         cleared = true;
-        line = pick(FF.LINES.ultFed);
+        line = this.line('ultFed');
         break;
       case 'cute':
         cleared = true;
         calm = 0; // 撒嬌本身已經大幅消氣
-        line = pick(FF.LINES.ultCute);
+        line = this.line('ultCute');
         break;
       case 'interrupted':
         cleared = true;
         calm = U.interruptCalm;
-        line = pick(FF.LINES.ultCancel);
+        line = this.line('ultCancel');
         break;
     }
     if (cleared) this.stats.ultCleared++;
@@ -310,30 +314,33 @@ Object.assign(FF.Game.prototype, {
     if (st === 'raw') {
       a = F.anger.raw * this.mods.angerMul;
       sc = F.score.raw;
+      this.stats.fedRaw++;
       kind = 'yuck';
-      line = pick(FF.LINES.fedRaw);
+      line = this.line('fedRaw');
     } else if (st === 'over') {
       a = F.anger.over;
       sc = F.score.over;
       kind = 'meh';
-      line = pick(FF.LINES.fedOver);
+      line = this.line('fedOver');
     } else {
       a = F.anger.perfect + (fav ? F.favBonus : 0) + (d.rare ? F.rareBonus : 0);
       sc = F.score.perfect + (fav ? F.score.fav : 0) + (d.rare ? F.score.rare : 0);
       kind = 'love';
-      line = pick(d.rare ? FF.LINES.fedRare : fav ? FF.LINES.fedFav : FF.LINES.fedLove);
+      this.stats.fedPerfect++;
+      if (fav) this.stats.fedFav++;
+      line = this.line(d.rare ? 'fedRare' : fav ? 'fedFav' : 'fedLove');
     }
     if (claimed && st !== 'raw') {
       a += F.claimBonus;
       this.claim = null;
-      line = pick(FF.LINES.fedClaim);
+      line = this.line('fedClaim');
     }
     // 連續餵會越來越沒感
     const mul = Math.max(F.minMul, 1 - F.perFatigue * this.feedFatigue);
     if (a < 0) {
-      a *= mul;
+      a *= mul * this.pm.feed; // 傲嬌模式餵食效果加倍
       if (mul < 0.5) {
-        line = pick(FF.LINES.fedFull);
+        line = this.line('fedFull');
         if (kind === 'love') kind = 'full';
       }
     }
@@ -371,6 +378,7 @@ Object.assign(FF.Game.prototype, {
     }
     FF.Haptics.vibrate('feed');
     this.say(line, 2.2, true);
+    this.challengeOnFeed(f, st, kind);
     if (c.feed.combo && this.ult && this.ult.type === 'combo') this.endUlt('fed');
   },
 });

@@ -20,7 +20,9 @@ FF.Haptics = (() => {
     vibrate,
     setEnabled(v) {
       enabled = !!v;
-      if (!enabled && supported) {
+      // 關閉時停止正在進行的震動；使用者還沒互動過時瀏覽器會擋下並在 console 報錯，所以略過
+      const ua = typeof navigator !== 'undefined' && navigator.userActivation;
+      if (!enabled && supported && !(ua && !ua.hasBeenActive)) {
         try { navigator.vibrate(0); } catch (e) { /* 忽略 */ }
       }
     },
