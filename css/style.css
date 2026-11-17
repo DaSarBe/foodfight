@@ -430,3 +430,10 @@ textarea.dlg-input { resize: none; font-size: 0.85em; word-break: break-all; }
 .ios-ic { flex: 0 0 3.8em; display: flex; justify-content: center; }
 .share-prev { display: block; max-width: 46%; max-height: 22em; margin: 0 auto 0.6em; border-radius: 0.6em; box-shadow: 0 0.15em 0.6em rgba(0,0,0,0.3); }
 .dly-text { white-space: pre-wrap; word-break: break-all; font: inherit; font-size: 0.85em; background: #fff; border-radius: 0.6em; padding: 0.6em; margin: 0 0 0.4em; text-align: left; }
+
+/* 玩法說明：進階技巧收合 */
+.rules-more { margin: 0.4em 0 0.8em; }
+.rules-more > summary { cursor: pointer; font-weight: bold; color: #b5532a; padding: 0.4em 0; list-style: none; text-align: center; }
+.rules-more > summary::-webkit-details-marker { display: none; }
+.rules-more > summary::after { content: ' ▾'; }
+.rules-more[open] > summary::after { content: ' ▴'; }
