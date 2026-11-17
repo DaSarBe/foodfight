@@ -49,7 +49,9 @@ Object.assign(FF.Game.prototype, {
   // 台詞：她的模式有專屬台詞時，大部分時候用專屬的
   line(key) {
     const own = this.persona && this.persona.lines[key];
-    const base = FF.LINES[key] || [''];
+    let base = FF.LINES[key] || [''];
+    const male = FF.G.partner() === 'm' && FF.G.MALE_LINES[key];
+    if (male && male.length) base = male; // 男朋友有自己的男生口吻
     if (own && own.length && (FF.util.R() < 0.75 || !base.length)) return FF.util.pick(own);
     return FF.util.pick(base);
   },

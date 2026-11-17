@@ -37,8 +37,9 @@ FF.Cloud = (() => {
     if (mode === 'off') return Promise.resolve(false);
     if (initP) return initP;
     st.phase = 'loading';
-    emit();
     initP = (async () => {
+      await Promise.resolve(); // 先讓 initP 指定好，再通知畫面（畫面重畫時可能又呼叫 ensure）
+      emit();
       try {
         impl = mode === 'mock' ? FF.CloudMock.create() : FF.CloudFirebase.create(FF.FIREBASE_CONFIG, FF.FIREBASE_SDK_VERSION);
         impl.onUser(setUser);

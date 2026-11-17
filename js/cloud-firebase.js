@@ -18,11 +18,15 @@ FF.CloudFirebase = (() => {
       onUser(cb) { userCb = cb; },
       async init() {
         const base = `https://www.gstatic.com/firebasejs/${ver}/`;
-        const [appM, authM, fsM] = await Promise.all([
+        // 用 allSettled：任一個載入失敗時，其他的失敗不會變成沒人接的 rejection（會被當成頁面錯誤）
+        const got = await Promise.allSettled([
           import(base + 'firebase-app.js'),
           import(base + 'firebase-auth.js'),
           import(base + 'firebase-firestore.js'),
         ]);
+        const bad = got.find(x => x.status === 'rejected');
+        if (bad) throw bad.reason || new Error('sdk-load');
+        const [appM, authM, fsM] = got.map(x => x.value);
         M = { app: appM, auth: authM, fs: fsM };
         const app = appM.initializeApp(cfg);
         auth = authM.getAuth(app);

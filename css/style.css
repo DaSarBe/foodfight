@@ -313,7 +313,7 @@ h3 small { font-size: 0.7em; color: #a0704f; font-weight: normal; }
 }
 .daily-card:active { transform: translateY(0.12em); box-shadow: 0 0.06em 0 #e0a040; }
 .daily-card .dc-head { display: flex; justify-content: space-between; width: 100%; font-size: 1.1em; }
-.daily-card small { font-size: 0.8em; color: #a0703a; }
+.daily-card small { font-size: 0.8em; color: #a0703a; margin-right: 1.1em; }
 .daily-card .dc-cfg { font-size: 0.82em; color: #8a5a2a; }
 .daily-card .dc-stat { font-size: 0.9em; font-weight: bold; color: #c2412b; }
 .btn.tile.soft-off { opacity: 0.6; }
@@ -428,3 +428,5 @@ textarea.dlg-input { resize: none; font-size: 0.85em; word-break: break-all; }
 .ios-steps li { display: flex; align-items: center; gap: 0.6em; background: #fff; border-radius: 0.8em; padding: 0.4em 0.6em; counter-increment: st; box-shadow: 0 0.1em 0 #f0d2b0; }
 .ios-steps li::before { content: counter(st); background: #ff7a59; color: #fff; border-radius: 50%; width: 1.5em; height: 1.5em; display: flex; align-items: center; justify-content: center; font-weight: bold; flex: 0 0 auto; }
 .ios-ic { flex: 0 0 3.8em; display: flex; justify-content: center; }
+.share-prev { display: block; max-width: 46%; max-height: 22em; margin: 0 auto 0.6em; border-radius: 0.6em; box-shadow: 0 0.15em 0.6em rgba(0,0,0,0.3); }
+.dly-text { white-space: pre-wrap; word-break: break-all; font: inherit; font-size: 0.85em; background: #fff; border-radius: 0.6em; padding: 0.6em; margin: 0 0 0.4em; text-align: left; }

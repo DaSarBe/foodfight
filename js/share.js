@@ -96,7 +96,11 @@ FF.Share = (() => {
 
     // 標題
     txt(ctx, '🍲 搶火鍋大作戰', W / 2, 92, 60, '#fff', { stroke: '#8a2a12', strokeW: 10 });
-    txt(ctx, ch ? `${ch.icon} 紀念日挑戰：${ch.name}` : '跟女朋友的火鍋攻防戰', W / 2, 156, 30, '#fff3d6', { stroke: 'rgba(120,30,10,0.6)', strokeW: 6, maxW: W - 120 });
+    const cp = r.comp;
+    const sub = ch ? `${ch.icon} 紀念日挑戰：${ch.name}`
+      : cp ? (cp.kind === 'daily' ? `🗓️ 每日同題 ${cp.dateKey}${cp.official ? '' : '（練習）'}・競技模式` : (r.duel ? `⚔️ 對決${r.duel.result === 'win' ? '・我贏了' : r.duel.result === 'lose' ? '・我輸了' : '・平手'}・競技模式` : '⚔️ 對決・競技模式'))
+        : '跟女朋友的火鍋攻防戰';
+    txt(ctx, sub, W / 2, 156, 30, '#fff3d6', { stroke: 'rgba(120,30,10,0.6)', strokeW: 6, maxW: W - 120 });
 
     // 白色卡片
     const cx = 44;
@@ -239,6 +243,58 @@ FF.Share = (() => {
     return cv;
   }
 
+  // 每日同題成績圖（從每日頁分享時用；沒有一局的完整結算資料，只畫配置與成績）
+  function renderDaily(key, rec) {
+    const cv = document.createElement('canvas');
+    cv.width = W;
+    cv.height = H;
+    const ctx = cv.getContext('2d');
+    const bg = ctx.createLinearGradient(0, 0, 0, H);
+    bg.addColorStop(0, '#ffb36b');
+    bg.addColorStop(0.5, '#ff7a59');
+    bg.addColorStop(1, '#b8341f');
+    ctx.fillStyle = bg;
+    ctx.fillRect(0, 0, W, H);
+    ctx.globalAlpha = 0.12;
+    const deco = ['🍲', '🥢', '🦐', '🥩', '🌽', '🍥', '🧆', '🦀'];
+    for (let i = 0; i < 40; i++) emo(ctx, deco[i % deco.length], (i % 5) * 160 + ((Math.floor(i / 5) % 2) * 80) + 20, Math.floor(i / 5) * 165 + 40, 54);
+    ctx.globalAlpha = 1;
+    txt(ctx, '🍲 搶火鍋大作戰', W / 2, 92, 60, '#fff', { stroke: '#8a2a12', strokeW: 10 });
+    txt(ctx, `🗓️ 每日同題 ${key}`, W / 2, 156, 32, '#fff3d6', { stroke: 'rgba(120,30,10,0.6)', strokeW: 6 });
+    const cx = 44, cy = 210, cw = W - 88, chh = 900;
+    ctx.fillStyle = 'rgba(80,20,5,0.25)';
+    roundRect(ctx, cx + 6, cy + 10, cw, chh, 36);
+    ctx.fill();
+    ctx.fillStyle = '#fff7ec';
+    roundRect(ctx, cx, cy, cw, chh, 36);
+    ctx.fill();
+    const cfg = FF.Daily.config(key);
+    const v = FF.VENUES.find(x => x.id === cfg.venue);
+    const p = FF.personaById(cfg.persona);
+    const b = FF.brothById(cfg.broth);
+    txt(ctx, '今日正式成績', W / 2, cy + 80, 34, '#a0704f', { weight: 'normal' });
+    txt(ctx, `${rec.score} 分`, W / 2, cy + 190, 130, '#c2412b', { stroke: '#fff', strokeW: 10, maxW: cw - 60 });
+    [['⏱ 存活', FF.Render.fmtTime(rec.time)], ['🌊 波數', `第 ${rec.wave} 波`], ['🔥 連續', `${FF.Daily.streak()} 天`]].forEach(([l, val], i) => {
+      const bw = (cw - 60 - 32) / 3;
+      const x = cx + 30 + i * (bw + 16);
+      ctx.fillStyle = '#fff';
+      roundRect(ctx, x, cy + 300, bw, 130, 22);
+      ctx.fill();
+      ctx.strokeStyle = '#f0d2b0';
+      ctx.lineWidth = 3;
+      ctx.stroke();
+      txt(ctx, l, x + bw / 2, cy + 336, 24, '#a0704f', { weight: 'normal', maxW: bw - 16 });
+      txt(ctx, val, x + bw / 2, cy + 388, 40, '#c2412b', { maxW: bw - 20 });
+    });
+    const blocks = Array.from({ length: Math.min(10, rec.wave) }, (_, i) => (i < 2 ? '🟨' : i < 5 ? '🟧' : '🟥')).join('');
+    txt(ctx, blocks + (rec.reason === 'anger' ? ' 😤' : rec.reason === 'hunger' ? ' 😵' : ' 🙄'), W / 2, cy + 500, 44, '#7a3b12', { maxW: cw - 60 });
+    [`📍 ${v.icon} ${v.name}`, `💕 她今天：${p.icon} ${p.name}`, `🍲 鍋底：${b.icon} ${b.name}`].forEach((sx, i) => txt(ctx, sx, cx + 60, cy + 600 + i * 56, 32, '#7a4a2a', { align: 'left', maxW: cw - 100 }));
+    txt(ctx, '全世界同一局，你能比我高分嗎？', W / 2, cy + 820, 30, '#9a2f55');
+    txt(ctx, '你也來跟她搶火鍋 👇', W / 2, H - 82, 28, '#fff3d6', { stroke: 'rgba(90,20,5,0.5)', strokeW: 5 });
+    txt(ctx, URL_TEXT, W / 2, H - 38, 30, '#fff', { stroke: 'rgba(90,20,5,0.6)', strokeW: 6, maxW: W - 60 });
+    return cv;
+  }
+
   function toBlob(cv) {
     return new Promise(res => {
       if (cv.toBlob) cv.toBlob(b => res(b), 'image/png');
@@ -261,9 +317,14 @@ FF.Share = (() => {
   async function share(blob, r) {
     if (!blob) return 'error';
     const name = 'foodfight-score.png';
-    const text = r.challenge
+    let text = r.challenge
       ? `我在「搶火鍋大作戰」紀念日挑戰「${r.challenge.name}」${r.challenge.win ? '過關了！' : '輸給她了…'} ${URL_TEXT}`
       : `我在「搶火鍋大作戰」拿到 ${r.grade.grade} 級「${r.grade.title}」，撐了 ${FF.Render.fmtTime(r.time)}！${URL_TEXT}`;
+    if (r.comp && r.comp.kind === 'daily' && r.comp.official) text = FF.Daily.shareText(r.comp.dateKey, { score: r.score, time: r.time, wave: r.wave, reason: r.reason });
+    else if (r.comp) {
+      const d = FF.Duel.fromResult(r);
+      text = FF.Duel.shareText(r, d);
+    }
     try {
       const file = new File([blob], name, { type: 'image/png' });
       if (navigator.canShare && navigator.share && navigator.canShare({ files: [file] })) {
@@ -282,5 +343,5 @@ FF.Share = (() => {
     }
   }
 
-  return { render, toBlob, share, URL: URL_TEXT };
+  return { render, renderDaily, toBlob, share, download, URL: URL_TEXT };
 })();

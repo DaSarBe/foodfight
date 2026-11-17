@@ -252,9 +252,35 @@ FF.UIX = (() => {
     $('dly-rank').addEventListener('click', () => { rankKind = 'daily'; H.show('rank'); });
   }
 
-  function shareDaily(key, rec) {
+  // 每日成績：Wordle 式文字＋成績圖。可以直接分享（支援就連圖片一起），也能只複製文字或存圖
+  async function shareDaily(key, rec) {
     const text = FF.Daily.shareText(key, rec);
-    shareOrCopy({ title: '搶火鍋大作戰・每日同題', text });
+    let blob = null;
+    try { blob = await FF.Share.toBlob(FF.Share.renderDaily(key, rec)); } catch (e) { /* 圖產生失敗就只分享文字 */ }
+    const url = blob ? URL.createObjectURL(blob) : '';
+    dialog({
+      title: '📤 分享今日成績',
+      html: `${url ? `<img class="share-prev" src="${url}" alt="今日成績圖">` : ''}<pre class="dly-text" data-notr>${esc(text)}</pre>`,
+      back: 'daily',
+      buttons: [
+        {
+          text: '📤 分享', cls: 'primary', fn: async () => {
+            try {
+              const file = blob && new File([blob], 'foodfight-daily.png', { type: 'image/png' });
+              if (file && navigator.canShare && navigator.share && navigator.canShare({ files: [file] }) && !FF.UIX.noWebShare) {
+                await navigator.share({ files: [file], title: '搶火鍋大作戰・每日同題', text });
+                return false;
+              }
+            } catch (e) { if (e && e.name === 'AbortError') return false; }
+            await shareOrCopy({ title: '搶火鍋大作戰・每日同題', text });
+            return false;
+          },
+        },
+        { text: '📋 複製文字', fn: async () => { try { await navigator.clipboard.writeText(text); H.toast('📋 已複製，貼給朋友吧！'); } catch (e) { H.toast('請長按文字複製'); } return false; } },
+        ...(blob ? [{ text: '🖼️ 存成圖片', fn: () => { FF.Share.download(blob, 'foodfight-daily.png'); H.toast('📥 成績圖已下載'); return false; } }] : []),
+        { text: '關閉', fn: () => { if (url) setTimeout(() => URL.revokeObjectURL(url), 2000); } },
+      ],
+    });
   }
 
   // 用 Web Share 分享文字／連結，不支援就複製到剪貼簿
@@ -599,12 +625,12 @@ FF.UIX = (() => {
     if (FF.Cloud.state.phase === 'error') {
       body.innerHTML = `<div class="empty-card"><div class="big">🔌</div><h3>雲端暫時連不上</h3>
         <p>可能是離線，或是雲端服務被擋住了。遊戲其他功能不受影響，晚點再試。</p><button class="btn small" id="acc-retry">再試一次</button></div>`;
-      $('acc-retry').addEventListener('click', () => { FF.Cloud.ensure().then(renderAccount); renderAccount(); });
+      $('acc-retry').addEventListener('click', () => { FF.Cloud.ensure(); });
       return;
     }
     if (FF.Cloud.state.phase !== 'ready') {
       body.innerHTML = '<div class="empty-card"><div class="big">⏳</div><p>正在連接雲端…</p></div>';
-      FF.Cloud.ensure().then(() => { if (FF.UI.current === 'account') renderAccount(); });
+      if (FF.Cloud.state.phase === 'idle') FF.Cloud.ensure(); // 載入完會透過 onChange 重畫
       return;
     }
     const u = FF.Cloud.user;

@@ -5,7 +5,7 @@
 //  - 快取名稱帶版本號，啟用新版 SW 時會刪掉所有舊版本的快取。
 //  - 不是同網域的請求（Firebase、Google 登入、gstatic SDK…）完全不碰，不快取、不攔截。
 //  - 只處理 GET。
-const VERSION = 'v3-1';
+const VERSION = 'v3-2';
 const CACHE = 'foodfight-' + VERSION;
 const CORE = [
   './', 'index.html', 'manifest.webmanifest', 'css/style.css',
@@ -49,7 +49,9 @@ self.addEventListener('fetch', e => {
   e.respondWith((async () => {
     const cache = await caches.open(CACHE);
     try {
-      const res = await withTimeout(fetch(req, { cache: 'no-cache' }), 4000);
+      // 導覽請求（mode: navigate）不能帶 RequestInit 重新建構，否則會丟 TypeError、永遠落到舊快取；改用網址重新請求
+      const fresh = req.mode === 'navigate' ? fetch(req.url, { cache: 'no-cache', credentials: 'same-origin' }) : fetch(req, { cache: 'no-cache' });
+      const res = await withTimeout(fresh, 4000);
       if (res && res.ok && res.type === 'basic') cache.put(req, res.clone()).catch(() => {});
       return res;
     } catch (err) {

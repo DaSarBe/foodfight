@@ -1,0 +1,122 @@
+rules_version = '2';
+
+// 搶火鍋大作戰 Firestore 安全規則（貼到 Firebase Console → Firestore Database → 規則，按「發布」）
+//
+// 資料結構（見 js/cloud-firebase.js）：
+//   daily/{日期}/scores/{uid}   每日同題成績。每人每天一筆，只能「建立」，不能改、不能刪、不能被較低（或任何）分數覆寫
+//   weekly/{週}/scores/{uid}    本週累計。只能跟「同一個交易裡新建的那筆每日成績」一起寫，且累計必須剛好等於舊值加那天的分數
+//   saves/{uid}                 雲端存檔。只有本人能讀寫
+// 其他路徑一律拒絕。
+//
+// 防作弊的邊界：這是沒有自己伺服器的小遊戲，規則只能擋「明顯不合理」的資料與亂寫別人的文件，
+// 擋不住有心人照規則範圍內自編成績。數值上限要跟 js/compete.js 的 FF.COMPETE.limits 一起改：
+//   存活時間 ≤ 1800 秒、每秒最高得分 50、基本分 200、單局分數 ≤ 60000
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ---------- 工具函式 ----------
+    function signedIn() {
+      return request.auth != null;
+    }
+    function isOwner(uid) {
+      return signedIn() && request.auth.uid == uid;
+    }
+    function isInt(v, lo, hi) {
+      return v is int && v >= lo && v <= hi;
+    }
+    function isStr(v, maxLen) {
+      return v is string && v.size() <= maxLen;
+    }
+
+    // 台灣時間（UTC+8）的日期字串
+    function pad(n) {
+      return (n < 10 ? '0' : '') + string(n);
+    }
+    function keyOf(t) {
+      return string(t.year()) + '-' + pad(t.month()) + '-' + pad(t.day());
+    }
+    // 日期只能是台灣時間的今天或昨天（跨午夜剛打完的那局還能上傳）
+    function dateKeyOk(key) {
+      return key == keyOf(request.time + duration.time(8, 0, 0, 0))
+        || key == keyOf(request.time - duration.time(16, 0, 0, 0));
+    }
+
+    // 單局成績合理性：分數 ≤ 200 + 存活秒數 × 50
+    function plausible(score, time) {
+      return isInt(score, 0, 60000) && isInt(time, 0, 1800) && score <= 200 + time * 50;
+    }
+    function nickOk(n) {
+      return n is string && n.size() >= 1 && n.size() <= 30; // 10 個字，UTF-8 最多 30 bytes 左右，這裡以字元數放寬
+    }
+
+    // ---------- 每日同題 ----------
+    match /daily/{dateKey}/scores/{uid} {
+      allow read: if true; // 排行榜公開（只有暱稱與分數）
+      allow create: if isOwner(uid)
+        && dateKeyOk(dateKey)
+        && request.resource.data.keys().hasOnly(['uid', 'nick', 'score', 'time', 'wave', 'persona', 'venue', 'broth', 'v', 'at'])
+        && request.resource.data.keys().hasAll(['uid', 'nick', 'score', 'time', 'wave', 'v', 'at'])
+        && request.resource.data.uid == uid
+        && nickOk(request.resource.data.nick)
+        && plausible(request.resource.data.score, request.resource.data.time)
+        && isInt(request.resource.data.wave, 1, 999)
+        && request.resource.data.wave <= request.resource.data.time / 20 + 3
+        && (!('persona' in request.resource.data) || isStr(request.resource.data.persona, 20))
+        && (!('venue' in request.resource.data) || isStr(request.resource.data.venue, 20))
+        && (!('broth' in request.resource.data) || isStr(request.resource.data.broth, 20))
+        && isInt(request.resource.data.v, 1, 99)
+        && request.resource.data.at == request.time;
+      allow update, delete: if false; // 一天一筆，寫了就不能改（也就不能被較低分覆寫，或偷改高）
+    }
+
+    // ---------- 每週累計 ----------
+    match /weekly/{weekKey}/scores/{uid} {
+      allow read: if true;
+      allow create, update: if isOwner(uid)
+        && weekKey.matches('^[0-9]{4}-W[0-9]{2}$')
+        && request.resource.data.keys().hasOnly(['uid', 'nick', 'total', 'days', 'best', 'lastDate', 'v', 'at'])
+        && request.resource.data.uid == uid
+        && nickOk(request.resource.data.nick)
+        && isInt(request.resource.data.total, 0, 420000)
+        && isInt(request.resource.data.days, 1, 7)
+        && isInt(request.resource.data.best, 0, 60000)
+        && request.resource.data.best <= request.resource.data.total
+        && request.resource.data.at == request.time
+        && dateKeyOk(request.resource.data.lastDate)
+        // 必須同一個交易裡「新建」了 lastDate 這天的每日成績，累計只能加那一天的分數
+        && !exists(/databases/$(database)/documents/daily/$(request.resource.data.lastDate)/scores/$(uid))
+        && existsAfter(/databases/$(database)/documents/daily/$(request.resource.data.lastDate)/scores/$(uid))
+        && getAfter(/databases/$(database)/documents/daily/$(request.resource.data.lastDate)/scores/$(uid)).data.score
+          == request.resource.data.total - (resource == null ? 0 : resource.data.total)
+        && request.resource.data.days == (resource == null ? 1 : resource.data.days + 1)
+        // 單日最佳必須剛好是「舊的最佳」與「今天分數」較大的那個，不能自己灌
+        && request.resource.data.best == (resource != null && resource.data.best > getAfter(/databases/$(database)/documents/daily/$(request.resource.data.lastDate)/scores/$(uid)).data.score
+          ? resource.data.best
+          : getAfter(/databases/$(database)/documents/daily/$(request.resource.data.lastDate)/scores/$(uid)).data.score);
+      allow delete: if false;
+    }
+
+    // ---------- 雲端存檔：只有本人能讀寫 ----------
+    match /saves/{uid} {
+      allow read: if isOwner(uid);
+      allow create, update: if isOwner(uid)
+        && request.resource.data.keys().hasOnly(['uid', 'json', 'tickets', 'bestScore', 'runs', 'updatedAt', 'v', 'at'])
+        && request.resource.data.uid == uid
+        && request.resource.data.json is string
+        && request.resource.data.json.size() <= 200000
+        && isInt(request.resource.data.tickets, 0, 100000000)
+        && isInt(request.resource.data.bestScore, 0, 1000000)
+        && isInt(request.resource.data.runs, 0, 10000000)
+        && request.resource.data.updatedAt is number
+        && isInt(request.resource.data.v, 1, 99)
+        && request.resource.data.at == request.time;
+      allow delete: if isOwner(uid);
+    }
+
+    // 其他一律拒絕
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
