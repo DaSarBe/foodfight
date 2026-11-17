@@ -3,7 +3,7 @@ window.FF = window.FF || {};
 
 FF.UI = (() => {
   const $ = id => document.getElementById(id);
-  const screens = ['menu', 'setup', 'settings', 'missions', 'achieve', 'challenges', 'howto', 'shop', 'pause', 'result', 'sharebox', 'daily', 'rank', 'account', 'dialog'];
+  const screens = ['menu', 'setup', 'settings', 'missions', 'achieve', 'challenges', 'howto', 'shop', 'pause', 'result', 'sharebox', 'daily', 'rank', 'account', 'dialog', 'dress', 'chopcase'];
   let current = 'menu';
   let howtoReturn = 'menu';
   let settingsReturn = 'menu';
@@ -24,6 +24,7 @@ FF.UI = (() => {
     if (name === 'challenges') FF.UIPanels.renderChallenges();
     if (name === 'settings' || name === 'pause') updateToggles();
     FF.UIX.onShow(name);
+    FF.UILook.onShow(name);
     // 背景音樂：遊戲中（含暫停）放遊戲段落，其他畫面放選單段落
     if (name === null) {
       FF.Music.setScene('game');
@@ -205,13 +206,13 @@ FF.UI = (() => {
     $('res-grade').innerHTML = `
       <div class="grade-badge" style="--gc:${g.color}">${g.grade}</div>
       <div class="grade-info">
-        <div class="grade-label">${ch ? '紀念日挑戰' : '她給你的男友評價'}</div>
+        <div class="grade-label">${ch ? '紀念日挑戰' : '{name}給你的男友評價'}</div>
         <div class="grade-title">${g.title}</div>
         <div class="grade-stars">${'★'.repeat(g.stars)}<span>${'★'.repeat(5 - g.stars)}</span></div>
         <div class="grade-titlechip">🏷️ ${r.titleName}</div>
       </div>`;
     const face = r.reason === 'win' ? '🥰' : r.reason === 'anger' ? '😤' : r.reason === 'hunger' ? '😋' : '🙄';
-    $('res-say').innerHTML = `<span class="gf-face">${face}</span><p>${ch ? g.comment : `「${g.comment}」`}</p>`;
+    $('res-say').innerHTML = `<span class="gf-face">${face}</span><p>${FF.G.name() ? '<b class="say-name">{name}：</b>' : ''}${ch ? g.comment : `「${g.comment}」`}</p>`;
     $('res-quips').innerHTML = r.quips.map(q => `<li>${q}</li>`).join('');
     const st = r.stats;
     $('res-stats').innerHTML = `
@@ -285,6 +286,10 @@ FF.UI = (() => {
     if (!lastResult) return;
     lastResult.titleName = FF.Progress.titleName();
     let cv;
+    // 成績圖預設不放照片；有照片時才出現勾選框
+    const photoOk = FF.Photo.active(FF.G.partner());
+    $('share-photo-row').classList.toggle('hidden', !photoOk);
+    lastResult.sharePhoto = photoOk && $('share-photo').checked;
     try {
       cv = FF.Share.render(lastResult);
     } catch (e) {
@@ -370,11 +375,13 @@ FF.UI = (() => {
     });
     click('btn-res-shop', () => show(lastResult && lastResult.challenge ? 'challenges' : 'shop'));
     click('btn-res-menu', () => show('menu'));
-    click('btn-share', () => openShare());
+    click('btn-share', () => { $('share-photo').checked = false; openShare(); });
+    $('share-photo').addEventListener('change', () => openShare());
     click('btn-share-go', () => doShare());
     click('btn-share-back', () => show('result'));
     FF.UIPanels.init({ $, toast, show, keepScroll, app });
     FF.UIX.init({ toast, show, app });
+    FF.UILook.init({ $, toast, show, keepScroll, app });
   }
 
   return {

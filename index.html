@@ -50,6 +50,10 @@
           <button class="btn tile" id="btn-rank">🥇 排行榜<small id="menu-rank">尚未開放</small></button>
           <button class="btn tile" id="btn-account">☁️ 雲端存檔<small id="menu-account">尚未開放</small><i class="dot hidden" id="dot-account"></i></button>
         </div>
+        <div class="menu-grid two">
+          <button class="btn tile" id="btn-dress">🎨 打扮對象<small id="menu-dress">捏臉・服裝・取名字</small></button>
+          <button class="btn tile" id="btn-chops">🥢 筷子櫃<small id="menu-chops">1/10 款</small></button>
+        </div>
         <div class="menu-foot">
           <button class="btn small ghost" id="btn-howto">📖 玩法說明</button>
           <button class="btn small ghost" id="btn-duel-input">⚔️ 貼上戰帖</button>
@@ -187,6 +191,31 @@
       </div>
     </section>
 
+    <section id="dress" class="screen hidden" data-notr>
+      <div class="panel shop-panel dress-panel">
+        <div class="shop-head">
+          <button class="btn small" id="btn-dress-back">← 返回</button>
+          <h2>🎨 打扮對象</h2>
+          <span></span>
+        </div>
+        <div id="dress-top"></div>
+        <div class="shop-body scroll" id="dress-body"></div>
+      </div>
+    </section>
+
+    <section id="chopcase" class="screen hidden">
+      <div class="panel shop-panel">
+        <div class="shop-head">
+          <button class="btn small" id="btn-chops-back">← 返回</button>
+          <h2>🥢 筷子櫃</h2>
+          <div class="tickets-pill">🎫 <b id="chops-tickets">0</b></div>
+        </div>
+        <div id="chops-prev"></div>
+        <p class="venue-tip">純外觀，不影響數值。點一款可以預覽，買了或解鎖後按「裝備」。</p>
+        <div class="shop-body scroll" id="chops-list"></div>
+      </div>
+    </section>
+
     <section id="dialog" class="screen hidden">
       <div class="panel dialog-panel scroll">
         <h2 id="dlg-title"></h2>
@@ -228,6 +257,7 @@
           <div class="tickets-pill">🎫 <b id="shop-tickets">0</b></div>
         </div>
         <div class="shop-body scroll">
+          <button class="btn small shop-chops" id="btn-shop-chops">🥢 筷子櫃（外觀造型，飯票的好去處）</button>
           <h3>永久能力</h3>
           <div id="shop-upgrades"></div>
           <h3>道具 <small>（遊戲中點下方按鈕使用）</small></h3>
@@ -277,6 +307,7 @@
       <div class="panel share-panel">
         <h2>📸 成績圖</h2>
         <div class="share-preview"><img id="share-img" alt="成績圖預覽"></div>
+        <label class="chk hidden" id="share-photo-row"><input type="checkbox" id="share-photo"> 成績圖使用照片（預設不放，照片只在你的手機）</label>
         <button class="btn primary" id="btn-share-go">分享 / 存圖</button>
         <button class="btn small" id="btn-share-back">← 返回結算</button>
       </div>
@@ -288,8 +319,10 @@
   <script src="js/config.js"></script>
   <script src="js/venues.js"></script>
   <script src="js/content.js"></script>
+  <script src="js/look-data.js"></script>
   <script src="js/save.js"></script>
   <script src="js/gender.js"></script>
+  <script src="js/look.js"></script>
   <script src="js/rng.js"></script>
   <script src="js/audio.js"></script>
   <script src="js/music.js"></script>
@@ -303,6 +336,7 @@
   <script src="js/compete.js"></script>
   <script src="js/duel.js"></script>
   <script src="js/daily.js"></script>
+  <script src="js/look-draw.js"></script>
   <script src="js/render.js"></script>
   <script src="js/scenes.js"></script>
   <script src="js/share.js"></script>
@@ -313,6 +347,7 @@
   <script src="js/ui-panels.js"></script>
   <script src="js/ui.js"></script>
   <script src="js/ui-extra.js"></script>
+  <script src="js/ui-look.js"></script>
   <script src="js/main.js"></script>
 </body>
 </html>

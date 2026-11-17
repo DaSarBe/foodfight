@@ -5,14 +5,14 @@
 //  - 快取名稱帶版本號，啟用新版 SW 時會刪掉所有舊版本的快取。
 //  - 不是同網域的請求（Firebase、Google 登入、gstatic SDK…）完全不碰，不快取、不攔截。
 //  - 只處理 GET。
-const VERSION = 'v3-5';
+const VERSION = 'v4-0';
 const CACHE = 'foodfight-' + VERSION;
 const CORE = [
   './', 'index.html', 'manifest.webmanifest', 'css/style.css',
-  'js/config.js', 'js/venues.js', 'js/content.js', 'js/save.js', 'js/gender.js', 'js/rng.js', 'js/audio.js', 'js/music.js', 'js/haptics.js',
+  'js/config.js', 'js/venues.js', 'js/content.js', 'js/look-data.js', 'js/save.js', 'js/gender.js', 'js/look.js', 'js/rng.js', 'js/audio.js', 'js/music.js', 'js/haptics.js',
   'js/game.js', 'js/variants.js', 'js/challenge.js', 'js/progress.js', 'js/events.js', 'js/specials.js', 'js/compete.js', 'js/duel.js',
-  'js/daily.js', 'js/render.js', 'js/scenes.js', 'js/share.js', 'js/firebase-config.js', 'js/cloud.js', 'js/cloud-firebase.js', 'js/pwa.js',
-  'js/ui-panels.js', 'js/ui.js', 'js/ui-extra.js', 'js/main.js',
+  'js/daily.js', 'js/look-draw.js', 'js/render.js', 'js/scenes.js', 'js/share.js', 'js/firebase-config.js', 'js/cloud.js', 'js/cloud-firebase.js', 'js/pwa.js',
+  'js/ui-panels.js', 'js/ui.js', 'js/ui-extra.js', 'js/ui-look.js', 'js/main.js',
   'icons/icon-192.png', 'icons/icon-512.png', 'icons/icon-maskable-512.png', 'icons/apple-touch-icon.png',
 ];
 

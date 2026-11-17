@@ -437,3 +437,47 @@ textarea.dlg-input { resize: none; font-size: 0.85em; word-break: break-all; }
 .rules-more > summary::-webkit-details-marker { display: none; }
 .rules-more > summary::after { content: ' ▾'; }
 .rules-more[open] > summary::after { content: ' ▴'; }
+
+/* ---------- v4：打扮對象、筷子櫃 ---------- */
+.menu-grid.two { grid-template-columns: 1fr 1fr; }
+.chk { display: flex; align-items: center; gap: 0.5em; font-size: 0.85em; color: #7a4a2a; text-align: left; cursor: pointer; }
+.chk input { width: 1.2em; height: 1.2em; flex: 0 0 auto; }
+.dress-go { width: 100%; margin-top: 0.4em; }
+.dress-panel { gap: 0.4em; }
+.dress-who { margin: 0; }
+.dress-who > span { flex: 0 0 2.6em; }
+.dress-prev { display: flex; gap: 0.5em; align-items: stretch; }
+.dress-prev canvas { flex: 0 0 11.5em; width: 11.5em; height: auto; aspect-ratio: 220 / 230; border-radius: 0.8em; background: #ffe9cf; box-shadow: inset 0 0 0 0.15em #ffc48a; }
+.expr-grid { flex: 1; display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.25em; align-content: start; }
+.expr { font: inherit; border: none; border-radius: 0.6em; background: #f5dcc0; color: #7a3b12; padding: 0.2em 0; cursor: pointer; display: flex; flex-direction: column; align-items: center; box-shadow: 0 0.1em 0 #d9a06a; }
+.expr i { font-style: normal; font-size: 1.25em; line-height: 1.2; }
+.expr span { font-size: 0.62em; font-weight: bold; white-space: nowrap; }
+.expr.on { background: #ff7a59; color: #fff; box-shadow: 0 0.1em 0 #a8301f; }
+.dsec { text-align: left; margin-bottom: 0.55em; }
+.dsec h4 { margin: 0 0 0.25em; font-size: 0.95em; color: #8a3d1a; }
+.dlabel { margin: 0.4em 0 0.2em; font-size: 0.8em; color: #8a5a3a; }
+.dopts { display: flex; flex-wrap: wrap; gap: 0.3em; }
+.dopts.two .opt { flex: 1; }
+.opt { font: inherit; font-size: 0.85em; font-weight: bold; border: none; border-radius: 0.7em; padding: 0.4em 0.65em; background: #f5dcc0; color: #8a5a3a; cursor: pointer; box-shadow: 0 0.1em 0 #d9a06a; }
+.opt.on { background: #ff7a59; color: #fff; box-shadow: 0 0.1em 0 #a8301f; }
+.dsw { display: flex; flex-wrap: wrap; gap: 0.35em; padding: 0.2em; }
+.sw { width: 1.9em; height: 1.9em; border-radius: 50%; border: 0.14em solid #fff; box-shadow: 0 0 0 0.1em #d9a06a; cursor: pointer; padding: 0; }
+.sw.on { box-shadow: 0 0 0 0.18em #ff3d6b; transform: scale(1.1); }
+.dim { opacity: 0.6; }
+.dress-acts { margin: 0.2em 0 0.5em; }
+.photo-sec { background: #fff; border-radius: 0.9em; padding: 0.6em 0.7em; box-shadow: 0 0.12em 0 #f0d2b0; }
+.photo-row { display: flex; gap: 0.6em; align-items: center; }
+.photo-thumb { width: 4.4em; height: 4.4em; border-radius: 50%; object-fit: cover; flex: 0 0 auto; box-shadow: 0 0 0 0.15em #ffc48a; }
+.photo-thumb.empty { display: flex; align-items: center; justify-content: center; background: #f5e6d3; }
+.photo-thumb.empty span { font-size: 2em; }
+.photo-btns { display: flex; flex-wrap: wrap; gap: 0.35em; }
+.photo-toggle { width: 100%; margin-top: 0.5em; font-size: 0.95em; padding: 0.5em 0.9em; }
+.crop-cv { width: 100%; max-width: 17em; aspect-ratio: 1; display: block; margin: 0.3em auto; border-radius: 0.6em; touch-action: none; cursor: grab; background: #222; }
+.crop-zoom { width: 100%; }
+.portrait { display: block; margin: 0 auto 0.3em; border-radius: 0.8em; background: #ffe9cf; }
+.duel-face { text-align: center; }
+.chops-cv { width: 100%; max-width: 20em; aspect-ratio: 300 / 170; display: block; margin: 0 auto; border-radius: 0.8em; box-shadow: inset 0 0 0 0.15em #ffc48a; }
+.chop-thumb { flex: 0 0 4em; width: 4em; height: 4em; background: linear-gradient(#d89a5a, #a8672f); border-radius: 0.6em; }
+.shop-chops { width: 100%; margin-bottom: 0.3em; }
+.say-name { color: #c2412b; }
+#dress-name-msg { min-height: 1.1em; }

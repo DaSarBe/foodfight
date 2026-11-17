@@ -91,6 +91,15 @@ FF.UIX = (() => {
     const box = document.createElement('div');
     genderControls(box);
     wrap.appendChild(box);
+    const dress = document.createElement('button');
+    dress.className = 'btn small dress-go';
+    dress.innerHTML = '🎨 打扮對象・取名字・用照片當臉';
+    dress.addEventListener('click', () => { FF.Audio.play('click'); FF.UILook.setBack('setup'); H.show('dress'); });
+    wrap.appendChild(dress);
+    const hint = document.createElement('p');
+    hint.className = 'venue-tip';
+    hint.textContent = '下面是四種模式的經典造型。想要自己捏臉，到「打扮對象」，自訂後所有模式都會套用。';
+    wrap.appendChild(hint);
     const prev = document.createElement('div');
     prev.className = 'who-prev';
     FF.PERSONAS.forEach(p => {
@@ -107,7 +116,7 @@ FF.UIX = (() => {
       c.beginPath();
       c.rect(160, 66, 220, 196);
       c.clip();
-      FF.Render.drawGF(c, null, 0.3, p);
+      FF.Render.drawGF(c, null, 0.3, p, { follow: true, noPhoto: true });
       c.restore();
       cell.appendChild(cv);
       const lab = document.createElement('span');
@@ -153,7 +162,7 @@ FF.UIX = (() => {
   function renderMenu() {
     const s = S();
     const w = FF.G.words();
-    $('menu-partner').textContent = `${w.icon} ${FF.G.partner() === 'm' ? '男朋友' : '女朋友'}`;
+    $('menu-partner').textContent = `${w.icon} ${FF.G.name() || (FF.G.partner() === 'm' ? '男朋友' : '女朋友')}`;
     const key = FF.Daily.today();
     const cfg = FF.Daily.config(key);
     const rec = FF.Daily.official(key);
@@ -322,13 +331,13 @@ FF.UIX = (() => {
     if (!S().unlockedGf.includes(p.id)) lock.push(`${p.icon} ${p.name}`);
     if (!S().unlockedBroth.includes(b.id)) lock.push(`${b.icon} ${b.name}`);
     const nick = d.nick || '神祕客';
-    return `<div class="duel-card">
+    return `<div class="duel-card"><div class="duel-face" id="duel-face"></div>
       <div class="duel-from"><b data-notr>${esc(nick)}</b> 向你下了戰帖！</div>
       <div class="duel-score">${d.score}<small> 分</small></div>
       <div class="duel-sub">⏱ ${FF.Render.fmtTime(d.time)}${d.fromDaily ? '　🗓️ 每日同題的配置' : ''}</div>
       <div class="duel-cfg">
         <span>${v.icon} ${v.name}</span><span>${p.icon} ${p.name}</span><span>${b.icon} ${b.name}</span>
-        <span data-notr>${d.partner === 'm' ? '👦 男朋友' : '👧 女朋友'}</span>
+        <span data-notr>${d.pname ? esc(d.pname) : d.partner === 'm' ? '👦 男朋友' : '👧 女朋友'}</span>
       </div>
       <ul class="duel-notes">
         <li>⚔️ 競技模式：能力統一 Lv.${FF.COMPETE.level}、不能用道具，同一個種子，公平對決。</li>
@@ -340,7 +349,7 @@ FF.UIX = (() => {
   }
 
   function showDuelCard(d) {
-    dialog({
+    const dlg = dialog({
       title: '⚔️ 收到戰帖',
       html: duelCardHtml(d),
       back: 'menu',
@@ -349,6 +358,9 @@ FF.UIX = (() => {
         { text: '算了，我怕', fn: () => {} },
       ],
     });
+    // 戰帖卡上的對象臉：用你自己的自訂外觀畫（戰帖不帶外觀），名字用對方帶來的
+    const face = dlg.querySelector('#duel-face');
+    if (face && FF.UILook) face.appendChild(FF.UILook.portrait({ gender: d.partner, mood: 'furious', size: 84, noPhoto: true, name: d.pname || '' }));
   }
 
   function openDuelInput() {
@@ -399,15 +411,17 @@ FF.UIX = (() => {
 
   // 產生戰帖連結並分享
   function sendDuelDialog(d, brief) {
-    const code = FF.Duel.encode(d);
-    const url = FF.Duel.link(code);
+    const pnameOf = FF.Look.nameOf(d.partner === 'm' ? 'm' : 'f');
+    let code = FF.Duel.encode(d);
+    let url = FF.Duel.link(code);
     const nm = (S().nick || '').trim();
     const text = FF.G.t(`🍲 搶火鍋大作戰・對決戰帖\n${nm ? nm + ' 在' : '我在'}「${brief.label}」拿了 ${brief.score} 分，撐了 ${FF.Render.fmtTime(brief.time)}！\n敢跟我決鬥嗎？👇`);
     dialog({
       title: '⚔️ 下戰帖',
       html: `<p>把這個連結傳給朋友，他打開就會玩到<b>一模一樣的一局</b>（同種子、同配置、能力統一）。</p>
         <input id="dlg-link" class="dlg-input" readonly value="${esc(url)}" data-notr>
-        <p class="venue-tip">戰帖碼內含：種子、場地、模式、鍋底、對象性別、你的暱稱（${nm ? esc(nm) : '沒設定'}）、分數與時間。</p>`,
+        <p class="venue-tip">戰帖碼內含：種子、場地、模式、鍋底、對象性別、你的暱稱（${nm ? esc(nm) : '沒設定'}）、分數與時間。</p>
+        ${pnameOf ? `<label class="chk"><input type="checkbox" id="dlg-pname"> 帶上對象的名字「<b data-notr>${esc(pnameOf)}</b>」（對方會在戰帖卡看到）</label>` : ''}`,
       buttons: [
         { text: '📤 分享連結', cls: 'primary', fn: async () => { await shareOrCopy({ title: '搶火鍋大作戰・對決戰帖', text, url }); return false; } },
         { text: '📋 複製連結', fn: async () => { try { await navigator.clipboard.writeText(url); H.toast('📋 已複製連結'); } catch (e) { $('dlg-link').select(); H.toast('請長按連結複製'); } return false; } },
@@ -416,6 +430,12 @@ FF.UIX = (() => {
     });
     const body = $('dlg-link');
     body.addEventListener('focus', () => body.select());
+    const pn = $('dlg-pname');
+    if (pn) pn.addEventListener('change', () => {
+      code = FF.Duel.encode(Object.assign({}, d, { pname: pn.checked ? pnameOf : '' }));
+      url = FF.Duel.link(code);
+      body.value = url;
+    });
     return { code, url, text };
   }
 
@@ -758,6 +778,7 @@ FF.UIX = (() => {
     else if (name === 'settings') renderSettings();
     if (name === 'menu') {
       FF.G.setOverride(null);
+      FF.G.setNameOverride(null);
       renderMenu();
     }
   }

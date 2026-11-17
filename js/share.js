@@ -141,7 +141,7 @@ FF.Share = (() => {
     // 評價文字
     const tx = cx + 252;
     const tw = cw - 270;
-    txt(ctx, ch ? '紀念日挑戰結果' : '她給你的男友評價', tx, cy + 70, 26, '#a0704f', { align: 'left', weight: 'normal', maxW: tw });
+    txt(ctx, ch ? '紀念日挑戰結果' : '{name}給你的男友評價', tx, cy + 70, 26, '#a0704f', { align: 'left', weight: 'normal', maxW: tw });
     txt(ctx, g.title, tx, cy + 122, 48, '#c2412b', { align: 'left', maxW: tw });
     ctx.font = `40px ${TEXT_FONT}`;
     ctx.textAlign = 'left';
@@ -175,7 +175,12 @@ FF.Share = (() => {
     ctx.fillStyle = '#ffe9f0';
     roundRect(ctx, cx + 30, sy, sw, sh, 28);
     ctx.fill();
-    emo(ctx, r.reason === 'win' ? '🥰' : r.reason === 'anger' ? '😤' : r.reason === 'hunger' ? '😋' : '🙄', cx + 92, sy + 62, 64);
+    // 她的臉：用遊戲裡實際的畫法（自訂外觀）；照片預設不放，勾選「成績圖使用照片」才用
+    try {
+      FF.UILook.avatar(ctx, cx + 92, sy + 62, 52, { mood: r.reason === 'win' ? 'happy' : r.reason === 'anger' ? 'furious' : r.reason === 'hunger' ? 'normal' : 'annoyed', noPhoto: !r.sharePhoto });
+    } catch (e) {
+      emo(ctx, r.reason === 'win' ? '🥰' : r.reason === 'anger' ? '😤' : r.reason === 'hunger' ? '😋' : '🙄', cx + 92, sy + 62, 64);
+    }
     lines.forEach((l, i) => txt(ctx, l, cx + 150, sy + 22 + (size + 12) / 2 + i * (size + 12), size, '#9a2f55', { align: 'left' }));
 
     // 數據

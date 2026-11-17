@@ -37,6 +37,10 @@ FF.Save = (() => {
       dc: dcDefaults(),
       cloud: { used: false, auto: true, base: 0, lastSync: 0 },
       pwa: { later: 0, laterRuns: 0, never: false, installed: false, asked: 0, seenIos: false },
+      // ---- v4 新增：對象外觀（女友、男友各一套）、對象名字、筷子造型（照片另存在 foodfight_photo_v1，不放這裡）----
+      look: { f: FF.LOOK.defaults('f'), m: FF.LOOK.defaults('m') },
+      names: { f: '', m: '' },
+      chops: { own: [], equip: 'plain' },
       updatedAt: 0,
     };
   }
@@ -50,7 +54,7 @@ FF.Save = (() => {
   // 終身統計：SUM 累加、MAX 取最大、SETS 收集不重複的 id
   const LIFE_SUM = ['runs', 'eaten', 'perfect', 'raw', 'dodges', 'knocked', 'gfAte', 'steals', 'fed', 'fedFav', 'fedRaw',
     'rareEaten', 'saves', 'crashFails', 'pitchesBought', 'badBuys', 'goodDeals', 'declines', 'ults', 'ultCleared',
-    'angerEnds', 'hungerEnds', 'playTime', 'ticketsEarned', 'missionsDone', 'challengeRuns'];
+    'angerEnds', 'hungerEnds', 'playTime', 'ticketsEarned', 'missionsDone', 'challengeRuns', 'styled'];
   const LIFE_MAX = ['bestCombo', 'bestWave', 'bestTime', 'maxFedRun', 'maxScore'];
   const LIFE_SETS = ['venues', 'broths', 'gfs'];
   function lifeDefaults() {
@@ -157,6 +161,17 @@ FF.Save = (() => {
         later: num(raw.pwa.later, 0, 0, 1e15), laterRuns: num(raw.pwa.laterRuns, 0, 0, 1e6), never: !!raw.pwa.never,
         installed: !!raw.pwa.installed, asked: num(raw.pwa.asked, 0, 0, 1e6), seenIos: !!raw.pwa.seenIos,
       };
+    }
+    // ---- v4 新欄位 ----
+    const lk = raw.look && typeof raw.look === 'object' ? raw.look : {};
+    d.look = { f: FF.LOOK.sanitize(lk.f, 'f'), m: FF.LOOK.sanitize(lk.m, 'm') };
+    const nm = raw.names && typeof raw.names === 'object' ? raw.names : {};
+    d.names = { f: typeof nm.f === 'string' ? FF.Name.clean(nm.f) : '', m: typeof nm.m === 'string' ? FF.Name.clean(nm.m) : '' };
+    if (raw.chops && typeof raw.chops === 'object') {
+      const paid = FF.CHOPS.filter(c => c.price).map(c => c.id);
+      d.chops.own = ids(raw.chops.own, id => paid.includes(id));
+      const ownedNow = id => id === 'plain' || d.chops.own.includes(id) || (FF.chopById(id).ach && d.achievements.includes(FF.chopById(id).ach));
+      if (typeof raw.chops.equip === 'string' && FF.CHOPS.some(c => c.id === raw.chops.equip) && ownedNow(raw.chops.equip)) d.chops.equip = raw.chops.equip;
     }
     d.updatedAt = num(raw.updatedAt, 0, 0, 1e15);
     return d;

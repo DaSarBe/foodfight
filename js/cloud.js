@@ -134,7 +134,9 @@ FF.Cloud = (() => {
 
   async function upload() {
     const d = FF.Save.data;
-    const r = await impl.saveUpload({ json: JSON.stringify(d), ...summary(d) });
+    // 隱私：照片只存在本機（foodfight_photo_v1），本來就不在存檔裡；這裡再保險一次，任何叫 photo(s) 的字串欄位都不上傳（look.*.photo 只是開關，不是照片）
+    const json = JSON.stringify(d, (k, v) => ((k === 'photo' && typeof v === 'string') || k === 'photos' ? undefined : v));
+    const r = await impl.saveUpload({ json, ...summary(d) });
     d.cloud.base = r.updatedAt;
     d.cloud.lastSync = Date.now();
     d.cloud.used = true;

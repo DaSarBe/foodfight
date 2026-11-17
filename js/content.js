@@ -185,6 +185,12 @@ FF.ACHIEVEMENTS = [
   { id: 'nosurvive', icon: '☠️', name: '求生慾為零',         desc: '累計餵她吃生的 5 次',                 title: '求生慾為零',     reward: 0,   test: L => L.fedRaw >= 5 },
   { id: 'lifer',     icon: '🫕', name: '火鍋就是人生',       desc: '累計吃火鍋 60 分鐘',                  title: '火鍋就是人生',   reward: 60,  test: L => L.playTime >= 3600 },
 ];
+FF.ACHIEVEMENTS.push(
+  { id: 'stylist',   icon: '💇', name: '造型師',             desc: '幫對象改了 8 個地方的外觀（髮型、衣服、配件都算）', title: '火鍋造型師',   reward: 30,  test: L => L.styled >= 8 },
+  { id: 'namer',     icon: '🏷️', name: '取了名字就要負責',   desc: '幫對象取一個名字（最多 6 個字）',     title: '負責任的人',     reward: 20,  test: L => L.named >= 1 },
+  { id: 'chopfan',   icon: '🥢', name: '筷子收藏家',         desc: '筷子櫃裡收集 5 款筷子',               title: '筷子收藏家',     reward: 60,  test: L => L.chopsOwned >= 5 },
+  { id: 'museum',    icon: '🏛️', name: '筷子博物館',         desc: '收集全部筷子造型',                    title: '筷子博物館長',   reward: 150, test: L => L.chopsOwned >= FF.CHOPS.length },
+);
 FF.DEFAULT_TITLE = '火鍋菜鳥';
 
 // ---------- 紀念日挑戰 ----------

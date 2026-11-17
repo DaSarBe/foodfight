@@ -311,6 +311,7 @@ FF.Render = (() => {
 
   // 後髮：依髮型不同
   function drawBackHair(ctx, look, x, y, r, time) {
+    if (FF.LookDraw.backHair(ctx, look, x, y, r, time)) return;
     ctx.fillStyle = look.hair;
     const st = look.style;
     if (st === 'twin') {
@@ -375,6 +376,7 @@ FF.Render = (() => {
     ctx.lineTo(x - r * 1.06, y + r * end);
     ctx.closePath();
     ctx.fill();
+    FF.LookDraw.maleBackExtra(ctx, look, x, y, r, time);
     if (st === 'spiky') {
       // 刺刺頭：頭頂幾根尖尖的，會微微晃
       const sw = Math.sin(time * 3) * 2;
@@ -396,6 +398,7 @@ FF.Render = (() => {
   function drawMaleBangs(ctx, look, x, y, r) {
     ctx.fillStyle = look.hair;
     const st = look.style;
+    if (FF.LookDraw.maleBangs(ctx, look, x, y, r)) return;
     ctx.beginPath();
     if (st === 'buzz') {
       // 圓寸：只有一道細細的髮際線
@@ -502,24 +505,31 @@ FF.Render = (() => {
     }
   }
 
-  function drawGF(ctx, game, time, personaOverride) {
+  // opts（預覽、成績圖頭像用）：gender 'f'|'m'、follow 強制用模式外觀、noPhoto 不用照片、mood 心情、expr 指定表情
+  //   expr：look 分心／scared 驚嚇／phone 滑手機／chew 嚼嚼／strike 出筷／ult 大絕招／love／yuck／full 餵食的三種反應
+  function drawGF(ctx, game, time, personaOverride, opts) {
     const G = C.gf;
     const persona = personaOverride || (game && game.persona) || FF.PERSONAS[0];
-    const male = FF.G.partner() === 'm';
-    const ap = (male && persona.lookM) || persona.look; // 外觀（對象是男朋友就用男生版）
-    const m = mood(game);
+    const gender = (opts && opts.gender) || FF.G.partner();
+    const male = gender === 'm';
+    const ap = FF.Look.apFor(persona, gender, opts); // 外觀：自訂外觀，或對象是男朋友就用模式的男生版
+    const ex0 = opts && opts.expr;
+    const m = opts && opts.mood ? opts.mood : mood(game);
     const g = game ? game.gf : null;
-    const chewing = g && (g.state === 'chew' || g.state === 'retract');
-    const phone = game && game.fx.phone > 0;
-    const look = game && game.fx.look > 0 && !phone;
-    const scared = game && game.crash && game.crash.phase !== 'moving';
-    const striking = g && (g.state === 'strikeWarn' || g.state === 'strikeAim');
+    const chewing = ex0 === 'chew' || (g && (g.state === 'chew' || g.state === 'retract'));
+    const phone = ex0 === 'phone' || (game && game.fx.phone > 0);
+    const look = ex0 === 'look' || (game && game.fx.look > 0 && !phone);
+    const scared = ex0 === 'scared' || (game && game.crash && game.crash.phase !== 'moving');
+    const striking = ex0 === 'strike' || (g && (g.state === 'strikeWarn' || g.state === 'strikeAim'));
+    const photoImg = !(opts && (opts.noPhoto || opts.follow)) && FF.Photo.active(gender) ? FF.Photo.img(gender) : null;
     const shakeX = m === 'furious' ? Math.sin(time * 40) * 1.5 : 0;
     const x = G.x + shakeX;
     const y = G.y + Math.sin(time * 2) * 2;
     const r = G.r;
-    const fed = g && g.fedFx ? g.fedFx.kind : null;
-    const ult = game && game.ult;
+    const fed = ex0 === 'love' || ex0 === 'yuck' || ex0 === 'full' ? ex0 : g && g.fedFx ? g.fedFx.kind : null;
+    const ult = ex0 === 'ult' ? { phase: 'charge' } : game && game.ult;
+    const skin = ap.skin || '#ffe0c7';
+    const fxState = { m, scared: !!scared, look: !!look, phone: !!phone, chewing: !!chewing, fed, ult: !!(ult && ult.phase !== 'striking'), striking: !!striking };
 
     // 大絕招氣場
     if (ult && ult.phase !== 'striking') {
@@ -542,7 +552,7 @@ FF.Render = (() => {
     ctx.quadraticCurveTo(x + sh - 5, y + r + 10, x + sh, 262);
     ctx.closePath();
     ctx.fill();
-    ctx.fillStyle = '#ffe0c7';
+    ctx.fillStyle = skin;
     ctx.beginPath();
     ctx.ellipse(x, y + r + 6, ap.male ? 21 : 18, 10, 0, 0, Math.PI * 2);
     ctx.fill();
@@ -554,6 +564,7 @@ FF.Render = (() => {
       ctx.ellipse(x, y + r + 8, 24, 12, 0, 0.05 * Math.PI, 0.95 * Math.PI);
       ctx.stroke();
     }
+    FF.LookDraw.outfit(ctx, ap, x, y, r, sh);
     if (ap.acc === 'bib') {
       // 吃貨的圍兜兜
       ctx.fillStyle = ap.accColor;
@@ -577,10 +588,11 @@ FF.Render = (() => {
     else drawBackHair(ctx, ap, x, y, r, time);
 
     // 臉
-    ctx.fillStyle = m === 'furious' ? '#ffc3b0' : '#ffe0c7';
+    ctx.fillStyle = m === 'furious' ? (ap.skin ? FF.Look.mix(skin, '#ff9a80', 0.35) : '#ffc3b0') : skin;
     ctx.beginPath();
     ctx.arc(x, y, r, 0, Math.PI * 2);
     ctx.fill();
+    if (photoImg) FF.LookDraw.photoFace(ctx, photoImg, x, y, r, fxState, time, ap);
 
     // 瀏海
     ctx.fillStyle = ap.hair;
@@ -599,12 +611,15 @@ FF.Render = (() => {
 
     drawHairAcc(ctx, ap, x, y, r);
 
-    // 腮紅
+    // 腮紅、眼睛、眉毛、嘴巴（用照片當臉時不畫，表情改由照片上的疊加效果呈現）
+    if (!photoImg) {
+    if (ap.blush !== false) {
     ctx.fillStyle = m === 'furious' ? 'rgba(255,60,60,0.45)' : ap.male ? 'rgba(255,120,120,0.2)' : 'rgba(255,120,150,0.35)';
     ctx.beginPath();
     ctx.ellipse(x - r * 0.55, y + r * 0.25, 11, 7, 0, 0, Math.PI * 2);
     ctx.ellipse(x + r * 0.55, y + r * 0.25, 11, 7, 0, 0, Math.PI * 2);
     ctx.fill();
+    }
 
     // 眼睛與眉毛
     const ex = r * 0.38;
@@ -614,6 +629,7 @@ FF.Render = (() => {
     ctx.lineWidth = 3.5;
     ctx.lineCap = 'round';
     const lookY = phone ? 4 : 0;
+    const customBrows = ap.brows && ap.brows !== 'auto';
     const blink = Math.sin(time * 1.3) > 0.985;
     if (fed && !scared) {
       for (const s of [-1, 1]) {
@@ -680,7 +696,8 @@ FF.Render = (() => {
       }
     } else {
       const h = m === 'normal' ? 8 : m === 'annoyed' ? 5 : 4;
-      for (const s of [-1, 1]) {
+      if (ap.eyes && ap.eyes !== 'round') FF.LookDraw.eyes(ctx, ap.eyes, x, ex, ey, h, lookY);
+      else for (const s of [-1, 1]) {
         ctx.beginPath();
         ctx.ellipse(x + s * ex, ey + lookY, 6, h, 0, 0, Math.PI * 2);
         ctx.fill();
@@ -690,7 +707,7 @@ FF.Render = (() => {
         ctx.fill();
         ctx.fillStyle = '#3a2219';
       }
-      if (m === 'annoyed' || m === 'furious') {
+      if ((m === 'annoyed' || m === 'furious') && !customBrows) {
         const tilt = m === 'furious' ? 9 : 4;
         ctx.lineWidth = 4;
         for (const s of [-1, 1]) {
@@ -703,7 +720,8 @@ FF.Render = (() => {
     }
 
     // 男友的眉毛：粗一點、平一點（生氣時上面已經畫過斜眉）
-    if (ap.male && m !== 'annoyed' && m !== 'furious') {
+    if (customBrows) FF.LookDraw.brows(ctx, ap.brows, ap.male ? FF.Look.darken(ap.hair, 0.55) : '#3a2219', x, ex, ey, m, scared);
+    else if (ap.male && m !== 'annoyed' && m !== 'furious') {
       ctx.strokeStyle = ap.hair;
       ctx.lineWidth = 5;
       const by = scared ? ey - 21 : ey - 15;
@@ -766,6 +784,9 @@ FF.Render = (() => {
       ctx.closePath();
       ctx.fill();
     }
+    } // !photoImg
+    if (photoImg) FF.LookDraw.photoFx(ctx, x, y, r, fxState, time, ap);
+    FF.LookDraw.acc(ctx, ap, x, y, r, fxState);
 
     if (scared) {
       emoji(ctx, '😱', x + r * 0.95, y - r * 0.8, 28);
@@ -1045,6 +1066,21 @@ FF.Render = (() => {
     ctx.lineTo(x + w - 8, y + h * 0.75);
     ctx.fill();
     lines.forEach((l, i) => text(ctx, l, x + w / 2, y + 18 + i * 21, 16, '#5a2a3a'));
+    // 對象的名字標籤（有取名字才有）：掛在泡泡左上角
+    const nm = FF.G.name();
+    if (nm) {
+      ctx.font = `bold 12px ${TEXT_FONT}`;
+      ctx.__notr = true;
+      const tw = Math.min(90, ctx.measureText(nm).width + 16);
+      ctx.fillStyle = '#ff6fa5';
+      roundRect(ctx, x + 8, y - 12, tw, 19, 9.5);
+      ctx.fill();
+      ctx.strokeStyle = '#fff';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      text(ctx, nm, x + 8 + tw / 2, y - 2, 12, '#fff', { stroke: 'rgba(120,20,60,0.5)', strokeW: 2 });
+      ctx.__notr = false;
+    }
     ctx.globalAlpha = 1;
   }
 
@@ -1331,7 +1367,7 @@ FF.Render = (() => {
       ctx.globalAlpha = 1;
     }
     drawChopsticks(ctx, g.tip, C.gfAnchor, game.ult ? '#ff5a7a' : '#f29bb8', game.ult ? '#8a0020' : '#b4466b');
-    drawChopsticks(ctx, p.tip, C.playerAnchor, '#d9a066', '#7a4a1f');
+    FF.ChopDraw.draw(ctx, FF.Chops.equipped(), p.tip, C.playerAnchor, time);
     if (game.fx.chopsticks > 0) {
       ctx.globalAlpha = 0.5 + Math.sin(time * 12) * 0.3;
       ctx.strokeStyle = '#ffe066';
@@ -1406,5 +1442,5 @@ FF.Render = (() => {
     drawWisps(ctx, time);
   }
 
-  return { drawGame, drawMenuBg, fmtTime, drawGF };
+  return { drawGame, drawMenuBg, fmtTime, drawGF, text, roundRect };
 })();

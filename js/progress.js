@@ -152,6 +152,8 @@ FF.Progress = (() => {
     if (game) addDelta(L, runDelta(game, null));
     L.gfUnlocked = s.unlockedGf.length;
     L.challengesCleared = s.challenges.cleared.length;
+    L.named = (s.names.f ? 1 : 0) + (s.names.m ? 1 : 0);
+    L.chopsOwned = FF.Chops ? FF.Chops.ownedCount() : 1;
     return L;
   }
 

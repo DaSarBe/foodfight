@@ -48,7 +48,7 @@ FF.G = (() => {
   };
 
   const RE = /女朋友|男朋友|女友|男友|寵妻|小姐|先生|她/g;
-  const QUICK = new RegExp('[她女男]|寵妻|小姐|先生|' + OV_KEYS.join('|'));
+  const QUICK = new RegExp('[她女男]|寵妻|小姐|先生|\\{name\\}|' + OV_KEYS.join('|'));
   const UNITS = new RegExp('女朋友|男朋友|女友|男友|寵妻|小姐|先生|' + OV_KEYS.join('|') + '|[\\s\\S]', 'gu');
 
   function partner() { return override || (save().partner === 'm' ? 'm' : 'f'); }
@@ -75,8 +75,21 @@ FF.G = (() => {
     }
   }
 
+  // 對象的名字：競技局（戰帖）可以帶對方的對象名字，只在那一局有效；沒取名字就是空字串
+  let nameOv = null;
+  function name() {
+    if (nameOv != null) return nameOv;
+    const n = save().names;
+    return (n && n[partner()]) || '';
+  }
+
+  // 文案裡的 {name}：有取名字就換成名字，沒有就是「她／他」。名字本身不再過性別字詞替換（名字可能剛好叫「小姐姐」）
   function t(s) {
     if (typeof s !== 'string' || !QUICK.test(s)) return s;
+    if (s.indexOf('{name}') >= 0) {
+      const nm = name() || (partner() === 'f' ? '她' : '他');
+      return s.split('{name}').map(t).join(nm);
+    }
     if (partner() === 'm') s = s.replace(OV_RE, k => OVERRIDES[k]);
     if (isDefault()) return s;
     return s.replace(RE, swap);
@@ -163,6 +176,8 @@ FF.G = (() => {
 
   return {
     t,
+    name,
+    setNameOverride(n) { nameOv = typeof n === 'string' ? n : null; refresh(); },
     units,
     partner,
     me,

@@ -5,6 +5,7 @@
 //   [2..5] 種子（uint32）
 //   varint 分數、varint 存活秒數
 //   暱稱長度(1 byte)＋暱稱 UTF-8（最多 10 個字、30 bytes）
+//   [0] 保留位的第 1 位＝有帶對象名字：暱稱之後再接 名字長度(1 byte)＋名字 UTF-8（最多 6 個字、18 bytes）。舊碼這一位是 0，照舊解析
 //   [最後 2 bytes] CRC16 校驗（再 XOR 一個常數，避免全 0 通過）
 // 校驗只防手打錯誤與傳錯，不是防作弊（碼誰都能自己編）；所以對決不上榜，也不給什麼獎勵。
 window.FF = window.FF || {};
@@ -92,7 +93,8 @@ FF.Duel = (() => {
     const p = Math.max(0, PERSONA_IDS.indexOf(d.persona));
     const b = Math.max(0, BROTH_IDS.indexOf(d.broth));
     const arr = [];
-    arr.push((FF.COMPETE.VERSION << 4) | ((d.partner === 'm' ? 1 : 0) << 3) | ((d.fromDaily ? 1 : 0) << 2));
+    const pn = d.pname ? FF.Name.check(d.pname) : { name: '' };
+    arr.push((FF.COMPETE.VERSION << 4) | ((d.partner === 'm' ? 1 : 0) << 3) | ((d.fromDaily ? 1 : 0) << 2) | (pn.ok && pn.name ? 2 : 0));
     arr.push(v | (p << 2) | (b << 4));
     const seed = d.seed >>> 0;
     arr.push(seed >>> 24, (seed >>> 16) & 255, (seed >>> 8) & 255, seed & 255);
@@ -102,6 +104,11 @@ FF.Duel = (() => {
     const nb = nick.ok ? Array.from(new TextEncoder().encode(nick.nick)) : [];
     arr.push(nb.length);
     arr.push(...nb);
+    if (pn.ok && pn.name) {
+      const pb = Array.from(new TextEncoder().encode(pn.name));
+      arr.push(pb.length);
+      arr.push(...pb);
+    }
     const c = crc16(arr, arr.length) ^ XOR;
     arr.push(c >> 8, c & 255);
     return b64enc(Uint8Array.from(arr));
@@ -142,16 +149,25 @@ FF.Duel = (() => {
     const score = readVar(bytes, pos);
     const time = readVar(bytes, pos);
     if (score == null || time == null || pos.i >= n) return { ok: false, reason: 'short', msg: MSG.short };
+    const hasName = !!(bytes[0] & 2);
     const nl = bytes[pos.i++];
-    if (nl > 30 || pos.i + nl !== n) return { ok: false, reason: 'short', msg: MSG.short };
+    if (nl > 30 || (hasName ? pos.i + nl >= n : pos.i + nl !== n)) return { ok: false, reason: 'short', msg: MSG.short };
     let nick = '';
     if (nl) {
       try { nick = new TextDecoder('utf-8', { fatal: true }).decode(bytes.slice(pos.i, pos.i + nl)); } catch (e) { return { ok: false, reason: 'chars', msg: MSG.chars }; }
       const c = cleanNick(nick);
       nick = c.ok ? c.nick : '';
     }
+    let pname = '';
+    if (hasName) {
+      const p0 = pos.i + nl;
+      const pl = bytes[p0];
+      if (pl < 1 || pl > 18 || p0 + 1 + pl !== n) return { ok: false, reason: 'short', msg: MSG.short };
+      try { pname = new TextDecoder('utf-8', { fatal: true }).decode(bytes.slice(p0 + 1, p0 + 1 + pl)); } catch (e) { return { ok: false, reason: 'chars', msg: MSG.chars }; }
+      pname = FF.Name.clean(pname);
+    }
     if (!FF.COMPETE.plausible(score, time)) return { ok: false, reason: 'fake', msg: MSG.fake };
-    return { ok: true, data: { version: ver, partner, fromDaily, venue, persona, broth, seed, score, time, nick } };
+    return { ok: true, data: { version: ver, partner, fromDaily, venue, persona, broth, seed, score, time, nick, pname } };
   }
 
   // ---------- 連結 ----------
@@ -164,11 +180,11 @@ FF.Duel = (() => {
   const link = code => `${baseUrl()}?duel=${code}`;
 
   // 這一局結算出一張戰帖
-  function fromResult(r, nick) {
+  function fromResult(r, nick, pname) {
     const c = r.comp || {};
     const code = encode({
       seed: r.seed, venue: r.venue.id, persona: r.persona.id, broth: r.broth.id, partner: c.partner || FF.G.partner(),
-      nick: nick == null ? FF.Save.data.nick : nick, score: r.score, time: r.time, fromDaily: c.kind === 'daily',
+      nick: nick == null ? FF.Save.data.nick : nick, pname: pname || '', score: r.score, time: r.time, fromDaily: c.kind === 'daily',
     });
     return { code, url: link(code) };
   }
@@ -177,7 +193,7 @@ FF.Duel = (() => {
   function compOpts(d) {
     return {
       kind: 'duel', seed: d.seed, venue: d.venue, persona: d.persona, broth: d.broth, partner: d.partner,
-      challenger: { nick: d.nick, score: d.score, time: d.time, fromDaily: d.fromDaily },
+      challenger: { nick: d.nick, pname: d.pname || '', score: d.score, time: d.time, fromDaily: d.fromDaily },
     };
   }
 

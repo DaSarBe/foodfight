@@ -58,6 +58,8 @@
       // 競技模式（對決、每日同題）：種子、配置由戰帖或日期決定；對決的對象性別以戰帖為準（只限這局）
       const comp = opts.compete || null;
       FF.G.setOverride(comp && comp.kind === 'duel' ? comp.partner : null);
+      // 戰帖若帶了對方的對象名字，這一局名字標籤用對方的
+      FF.G.setNameOverride(comp && comp.kind === 'duel' && comp.challenger && comp.challenger.pname ? comp.challenger.pname : null);
       if (comp) FF.UIX.lastComp = { ...comp };
       game = new FF.Game(FF.Save.data, {
         onGameOver: res => {
