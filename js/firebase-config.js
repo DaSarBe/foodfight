@@ -5,12 +5,12 @@
 window.FF = window.FF || {};
 
 FF.FIREBASE_CONFIG = {
-  apiKey: '',
-  authDomain: '',
-  projectId: '',
-  storageBucket: '',
-  messagingSenderId: '',
-  appId: '',
+  apiKey: 'AIzaSyDgZTpdcZw2IydTW8O2BBTeEv08qBl7GyE',
+  authDomain: 'foodfight-38e9e.firebaseapp.com',
+  projectId: 'foodfight-38e9e',
+  storageBucket: 'foodfight-38e9e.firebasestorage.app',
+  messagingSenderId: '106778619165',
+  appId: '1:106778619165:web:a759e82ab6231fbb48c5f4',
 };
 
 // 從 Google 的 CDN（gstatic）以 ES module 動態載入的 SDK 版本

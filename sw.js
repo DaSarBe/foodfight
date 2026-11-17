@@ -5,7 +5,7 @@
 //  - 快取名稱帶版本號，啟用新版 SW 時會刪掉所有舊版本的快取。
 //  - 不是同網域的請求（Firebase、Google 登入、gstatic SDK…）完全不碰，不快取、不攔截。
 //  - 只處理 GET。
-const VERSION = 'v3-2';
+const VERSION = 'v3-3';
 const CACHE = 'foodfight-' + VERSION;
 const CORE = [
   './', 'index.html', 'manifest.webmanifest', 'css/style.css',
