@@ -37,7 +37,7 @@ FF.UILook = (() => {
     if (got.length) {
       setTimeout(() => {
         H.toast(`🏆 成就解鎖：${got.map(a => a.name).join('、')}${got.some(a => a.reward) ? `（🎫 +${got.reduce((n, a) => n + a.reward, 0)}）` : ''}`);
-        FF.Audio.play('rare');
+        FF.Audio.play('unlock');
       }, 700);
     }
     return r;
@@ -496,7 +496,7 @@ FF.UILook = (() => {
         if (b.dataset.act === 'buy') {
           if (watch(() => FF.Chops.buy(c.id))) {
             FF.Chops.equip(c.id);
-            FF.Audio.play('coin');
+            FF.Audio.play('item'); // 花飯票買筷子
             H.toast(`🎉 買了「${c.name}」，已裝備！`);
           } else FF.Audio.play('error');
         } else {

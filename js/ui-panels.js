@@ -16,7 +16,7 @@ FF.UIPanels = (() => {
       if (got.length) {
         setTimeout(() => {
           H.toast(`🏆 成就解鎖：${got.map(a => a.name).join('、')}${got.some(a => a.reward) ? `（🎫 +${got.reduce((n, a) => n + a.reward, 0)}）` : ''}`);
-          FF.Audio.play('rare');
+          FF.Audio.play('unlock');
         }, 900);
       }
     };
@@ -88,7 +88,7 @@ FF.UIPanels = (() => {
       const done = achWatch();
       if (FF.Progress.unlockPersona(p.id, b.dataset.act)) {
         done();
-        FF.Audio.play('coin');
+        FF.Audio.play(b.dataset.act === 'cond' ? 'unlock' : 'item'); // 花飯票 → 購買音；達成條件免費解鎖 → 解鎖音
         s.gfType = p.id;
         FF.Save.persist();
         H.toast(`🎉 解鎖「${p.name}」！`);
@@ -118,7 +118,7 @@ FF.UIPanels = (() => {
       el.querySelector('.buy').addEventListener('click', e => {
         e.stopPropagation();
         if (FF.Progress.unlockBroth(b.id)) {
-          FF.Audio.play('coin');
+          FF.Audio.play('item'); // 花飯票解鎖鍋底
           s.broth = b.id;
           FF.Save.persist();
           H.toast(`🎉 解鎖「${b.name}」！`);
@@ -172,7 +172,7 @@ FF.UIPanels = (() => {
         const done = achWatch();
         const got = FF.Progress.claimMission(i);
         if (got) {
-          FF.Audio.play('coin');
+          FF.Audio.play('coin'); // 領取飯票
           H.toast(`領到 🎫 ${got}！`);
           done();
           H.keepScroll(renderMissions);
@@ -192,7 +192,7 @@ FF.UIPanels = (() => {
     if (bb) bb.addEventListener('click', () => {
       const got = FF.Progress.claimBonus();
       if (got) {
-        FF.Audio.play('hero');
+        FF.Audio.play('coin'); // 領取飯票
         H.toast(`全勤獎 🎫 ${got}！`);
         H.keepScroll(renderMissions);
       } else FF.Audio.play('error');
@@ -239,7 +239,7 @@ FF.UIPanels = (() => {
       const eb = el.querySelector('.equip');
       if (eb) eb.addEventListener('click', () => {
         FF.Progress.equipTitle(a.id);
-        FF.Audio.play('coin');
+        FF.Audio.play('click');
         H.toast(`已裝備稱號「${a.title}」`);
         H.keepScroll(renderAchieve);
       });

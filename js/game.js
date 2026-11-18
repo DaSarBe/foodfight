@@ -1007,7 +1007,7 @@ FF.Game = class Game {
     this.save.items[id]--;
     FF.Save.persist();
     this.itemCd = FF.CONFIG.itemCooldown;
-    FF.Audio.play('item');
+    FF.Audio.play('useItem'); // 遊戲中使用道具：只有合成音（購買音不適合）
     this.burst(b.x, b.y, 10, ['#fff', '#ffe066'], { speed: 180, size: 5, life: 0.5, gravity: 0 });
     const cancelStrike = () => this.cancelStrike();
     switch (id) {

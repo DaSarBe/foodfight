@@ -38,6 +38,7 @@ FF.Audio = (() => {
       return;
     }
     unlockCbs.forEach(fn => { try { fn(); } catch (e) { /* 忽略 */ } });
+    setTimeout(() => { loadSamples().catch(() => {}); }, 300); // 背景預載，不擋遊戲開始
   }
 
   function setMuted(m) {
@@ -114,10 +115,13 @@ FF.Audio = (() => {
     splash: () => noise(0.25, { vol: 0.2, freq: 900, sweep: -500, q: 0.8 }),
     gfEat: () => { tone(400, 0.06, { type: 'sine', vol: 0.15 }); tone(480, 0.06, { type: 'sine', vol: 0.15, delay: 0.09 }); },
     angry: () => { tone(220, 0.12, { type: 'sawtooth', vol: 0.15 }); tone(200, 0.16, { type: 'sawtooth', vol: 0.15, delay: 0.12 }); },
-    item: () => { tone(700, 0.08, { type: 'triangle', vol: 0.2 }); tone(1050, 0.12, { type: 'triangle', vol: 0.2, delay: 0.06 }); },
+    item: () => sfx.useItem(), // 花飯票購買（有取樣；沒載入時退回這個合成音）
+    useItem: () => { tone(700, 0.08, { type: 'triangle', vol: 0.2 }); tone(1050, 0.12, { type: 'triangle', vol: 0.2, delay: 0.06 }); }, // 遊戲中使用道具（只有合成音）
     coin: () => { tone(988, 0.07, { type: 'square', vol: 0.12 }); tone(1319, 0.18, { type: 'square', vol: 0.12, delay: 0.07 }); },
     wave: () => [523, 659, 784].forEach((f, i) => tone(f, 0.14, { type: 'triangle', vol: 0.2, delay: i * 0.09 })),
     rare: () => [784, 988, 1175, 1568].forEach((f, i) => tone(f, 0.1, { type: 'sine', vol: 0.18, delay: i * 0.06 })),
+    // 解鎖（成就、新場地、下一關、免費解鎖）：沿用原本成就解鎖時的閃亮琶音當退回音
+    unlock: () => sfx.rare(),
     gameover: () => [440, 370, 311, 262].forEach((f, i) => tone(f, 0.25, { type: 'triangle', vol: 0.22, delay: i * 0.18 })),
     bell: () => { tone(2093, 0.5, { type: 'sine', vol: 0.25 }); tone(2637, 0.4, { type: 'sine', vol: 0.12, delay: 0.01 }); },
     ooh: () => { tone(500, 0.25, { type: 'triangle', vol: 0.18, slide: 300 }); tone(700, 0.3, { type: 'triangle', vol: 0.14, slide: 400, delay: 0.12 }); },
@@ -153,6 +157,91 @@ FF.Audio = (() => {
     yuck: () => { tone(330, 0.35, { type: 'sawtooth', vol: 0.12, slide: -180 }); tone(260, 0.3, { type: 'square', vol: 0.06, slide: -120, delay: 0.12 }); },
   };
 
+  // ---------- 取樣音效（mp3）----------
+  // 第一次互動、AudioContext 建立後，在背景逐檔 fetch + decodeAudioData；
+  // 還沒載好、解碼失敗、file://、不支援時一律退回上面的合成音（合成音程式都還在）。
+  // g：相對音量（候選 mp3 響度約為合成音的 3 倍，試聽頁壓到 0.4）；rate：隨機變速範圍
+  const SAMPLE_GAIN = 0.4;
+  const MAX_VOICES = 3;
+  const SAMPLES = {
+    click: { g: 0.7, rate: [0.97, 1.04] },
+    grab: { rate: [0.94, 1.08] },
+    hit: { rate: [0.96, 1.04] },
+    miss: { g: 0.85 },
+    coin: { rate: [0.97, 1.04] },
+    item: {},
+    unlock: {},
+    rare: {},
+    feed: {},
+    yuck: {},
+    angry: { rate: [0.97, 1.03] },
+    ooh: {},
+    screech: {},
+    crash: {},
+    splash: { rate: [0.92, 1.1] },
+  };
+  const buffers = {};   // name -> AudioBuffer（載好才有）
+  const voices = {};    // name -> 目前正在播的 source
+  let loadStarted = false;
+
+  function decode(data) {
+    // 舊版 Safari 只有 callback 形式
+    return new Promise((resolve, reject) => {
+      try {
+        const r = ctx.decodeAudioData(data, resolve, reject);
+        if (r && typeof r.then === 'function') r.then(resolve, reject);
+      } catch (e) { reject(e); }
+    });
+  }
+
+  async function loadSamples() {
+    if (loadStarted || !ctx) return;
+    loadStarted = true;
+    if (typeof fetch !== 'function' || location.protocol === 'file:') return; // file:// 抓不到，直接用合成音
+    for (const name of Object.keys(SAMPLES)) {
+      try {
+        const res = await fetch('sfx/' + name + '.mp3');
+        if (!res.ok) continue;
+        const buf = await decode(await res.arrayBuffer());
+        if (buf) buffers[name] = buf;
+      } catch (e) { /* 這個音效就用合成音 */ }
+      await new Promise(r => setTimeout(r, 30)); // 一檔一檔來，不跟遊戲搶主執行緒
+    }
+  }
+
+  function playSample(name) {
+    const buf = buffers[name];
+    const cfg = SAMPLES[name];
+    if (!buf || !cfg || !ctx || !master) return false;
+    try {
+      const src = ctx.createBufferSource();
+      src.buffer = buf;
+      if (cfg.rate) src.playbackRate.value = cfg.rate[0] + Math.random() * (cfg.rate[1] - cfg.rate[0]);
+      const g = ctx.createGain();
+      g.gain.value = SAMPLE_GAIN * (cfg.g || 1);
+      src.connect(g).connect(master);
+      const list = voices[name] || (voices[name] = []);
+      const v = { src, g };
+      while (list.length >= MAX_VOICES) { // 同一種最多 3 個同時，最舊的快速淡出
+        const old = list.shift();
+        try {
+          old.g.gain.setTargetAtTime(0, ctx.currentTime, 0.015);
+          old.src.stop(ctx.currentTime + 0.08);
+        } catch (e) { /* 忽略 */ }
+      }
+      list.push(v);
+      src.onended = () => {
+        const i = list.indexOf(v);
+        if (i >= 0) list.splice(i, 1);
+        try { src.disconnect(); g.disconnect(); } catch (e) { /* 忽略 */ }
+      };
+      src.start();
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+
   return {
     unlock,
     setMuted,
@@ -161,8 +250,13 @@ FF.Audio = (() => {
     get ctx() { return ctx; },
     get musicBus() { return musicBus; },
     get noiseBuf() { return noiseBuf; },
+    get sampleNames() { return Object.keys(buffers); }, // 測試用：已載入的取樣
     play(name, arg) {
-      try { sfx[name] && sfx[name](arg); } catch (e) { /* 忽略音效錯誤 */ }
+      if (!ctx || muted) return;
+      try {
+        if (buffers[name] && playSample(name)) return;
+        sfx[name] && sfx[name](arg);
+      } catch (e) { /* 忽略音效錯誤 */ }
     },
   };
 })();

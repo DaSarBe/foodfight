@@ -5,7 +5,7 @@
 //  - 快取名稱帶版本號，啟用新版 SW 時會刪掉所有舊版本的快取。
 //  - 不是同網域的請求（Firebase、Google 登入、gstatic SDK…）完全不碰，不快取、不攔截。
 //  - 只處理 GET。
-const VERSION = 'v4-0';
+const VERSION = 'v5-0';
 const CACHE = 'foodfight-' + VERSION;
 const CORE = [
   './', 'index.html', 'manifest.webmanifest', 'css/style.css',
@@ -13,6 +13,8 @@ const CORE = [
   'js/game.js', 'js/variants.js', 'js/challenge.js', 'js/progress.js', 'js/events.js', 'js/specials.js', 'js/compete.js', 'js/duel.js',
   'js/daily.js', 'js/look-draw.js', 'js/render.js', 'js/scenes.js', 'js/share.js', 'js/firebase-config.js', 'js/cloud.js', 'js/cloud-firebase.js', 'js/pwa.js',
   'js/ui-panels.js', 'js/ui.js', 'js/ui-extra.js', 'js/ui-look.js', 'js/main.js',
+  'sfx/click.mp3', 'sfx/grab.mp3', 'sfx/rare.mp3', 'sfx/hit.mp3', 'sfx/miss.mp3', 'sfx/feed.mp3', 'sfx/yuck.mp3', 'sfx/angry.mp3', 'sfx/ooh.mp3',
+  'sfx/coin.mp3', 'sfx/item.mp3', 'sfx/unlock.mp3', 'sfx/screech.mp3', 'sfx/crash.mp3', 'sfx/splash.mp3',
   'icons/icon-192.png', 'icons/icon-512.png', 'icons/icon-maskable-512.png', 'icons/apple-touch-icon.png',
 ];
 

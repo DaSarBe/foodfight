@@ -178,7 +178,7 @@ FF.UI = (() => {
     s.tickets -= cost;
     s.upgrades[u.id] = lv + 1;
     FF.Save.persist();
-    FF.Audio.play('coin');
+    FF.Audio.play('item'); // 花飯票購買
     toast(`${u.icon} ${u.name} 升到 Lv.${lv + 1}！`);
     keepScroll(renderShop);
   }
@@ -189,7 +189,7 @@ FF.UI = (() => {
     s.tickets -= item.price;
     s.items[item.id]++;
     FF.Save.persist();
-    FF.Audio.play('coin');
+    FF.Audio.play('item'); // 花飯票購買
     toast(`買了 ${item.icon} ${item.name}（持有 ${s.items[item.id]}）`);
     keepScroll(renderShop);
   }
@@ -227,6 +227,11 @@ FF.UI = (() => {
       <div><span>🥄 餵她吃了幾口</span><b>${st.fed || 0}</b></div>
       <div><span>💢 她放大絕招</span><b>${st.ults || 0}</b></div>
       <div class="wide"><span>${r.persona.icon} ${r.persona.name}・${r.broth.icon} ${r.broth.name}</span><span>${r.venue.icon} ${r.venue.name}</span></div>`;
+    // 結算時的聲音：拿到飯票 → 投幣；解鎖新場地／紀念日下一關 → 解鎖音。錯開時間，不跟結束音疊在一起
+    const totalTickets = (r.tickets && r.tickets.total) || 0;
+    const unlockedSomething = (r.unlocked || []).length > 0 || !!(ch && ch.firstClear && ch.next);
+    if (totalTickets > 0) setTimeout(() => { if (lastResult === r) FF.Audio.play('coin'); }, 800);
+    if (unlockedSomething) setTimeout(() => { if (lastResult === r) FF.Audio.play('unlock'); }, totalTickets > 0 ? 1500 : 800);
     const un = $('res-unlock');
     un.classList.toggle('hidden', !r.unlocked.length);
     un.innerHTML = r.unlocked.map(v => `🎉 解鎖新場地：${v.icon} <b>${v.name}</b>`).join('<br>');

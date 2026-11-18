@@ -295,7 +295,7 @@ Object.assign(FF.Game.prototype, {
       this.notices.push({ a, t: -i * 2.6, life: 2.8 });
     });
     if (got.length) {
-      FF.Audio.play('rare');
+      FF.Audio.play('unlock');
       FF.Haptics.vibrate('comboClear');
     }
   },

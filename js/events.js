@@ -309,7 +309,7 @@ Object.assign(FF.Game.prototype, {
     const w = this.waiter;
     const { pick } = FF.util;
     if (!w || w.phase !== 'pitch') return;
-    FF.Audio.play('coin');
+    FF.Audio.play('item'); // 花分數買服務員推銷的東西 = 購買
     this.score = Math.max(0, this.score - 30);
     this.stats.pitchesBought++;
     if (!w.good) this.stats.badBuys++;
